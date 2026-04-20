@@ -163,9 +163,9 @@ object ChestCavityUtil {
         if (cc.oldOrganScores == cc.organScores) return
         OrganUpdateListeners.onOrganUpdate(cc.owner, cc)
         cc.oldOrganScores = cc.organScores.toMap()
-        // Sync to client
+        // Sync to client (only if player has an active connection)
         val owner = cc.owner
-        if (!owner.level().isClientSide && owner is net.minecraft.server.level.ServerPlayer) {
+        if (!owner.level().isClientSide && owner is net.minecraft.server.level.ServerPlayer && owner.connection != null) {
             val payload = net.tigereye.chestcavity.registration.ChestCavityUpdatePayload(cc.opened, cc.organScores)
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(owner, payload)
         }
