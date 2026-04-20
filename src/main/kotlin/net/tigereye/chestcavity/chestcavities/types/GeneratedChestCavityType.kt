@@ -69,15 +69,39 @@ class GeneratedChestCavityType(
     }
 
     override fun generateLootDrops(random: RandomSource, looting: Int): List<ItemStack> {
+        if (playerChestCavity) return emptyList()
+
+        val organPool = (0 until defaultInventory.containerSize)
+            .map { defaultInventory.getItem(it) }
+            .filter { !it.isEmpty }
+            .map { it.copy() }
+            .toMutableList()
+
+        if (organPool.isEmpty()) return emptyList()
+
         val drops = mutableListOf<ItemStack>()
-        for (i in 0 until defaultInventory.containerSize) {
-            val stack = defaultInventory.getItem(i)
-            if (stack.isEmpty) continue
-            if (random.nextFloat() < dropRateMultiplier) {
-                drops.add(stack.copy())
+        if (bossChestCavity) {
+            val rolls = 3 + random.nextInt(2 + looting) + random.nextInt(2 + looting)
+            drawOrgansFromPile(organPool, rolls, random, drops)
+        } else {
+            val chance = net.tigereye.chestcavity.CCConfig.UNIVERSAL_DONOR_RATE.get().toFloat() +
+                net.tigereye.chestcavity.CCConfig.ORGAN_BUNDLE_LOOTING_BOOST.get().toFloat() * looting
+            if (random.nextFloat() < chance) {
+                val rolls = 1 + random.nextInt(3) + random.nextInt(3)
+                drawOrgansFromPile(organPool, rolls, random, drops)
             }
         }
         return drops
+    }
+
+    private fun drawOrgansFromPile(pile: MutableList<ItemStack>, rolls: Int, random: RandomSource, loot: MutableList<ItemStack>) {
+        repeat(rolls) {
+            if (pile.isEmpty()) return
+            val index = random.nextInt(pile.size)
+            val rolled = pile.removeAt(index).copy()
+            if (rolled.count > 1) rolled.count = 1 + random.nextInt(rolled.maxStackSize)
+            loot.add(rolled)
+        }
     }
 
     override fun setOrganCompatibility(instance: ChestCavityInstance) {
