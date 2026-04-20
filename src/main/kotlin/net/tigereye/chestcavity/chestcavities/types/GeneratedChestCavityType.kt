@@ -22,12 +22,25 @@ class GeneratedChestCavityType(
 ) : ChestCavityType {
 
     override val defaultOrganScores: Map<ResourceLocation, Float>
-        get() = _cachedDefaults ?: run {
-            val scores = baseOrganScores.toMutableMap()
-            _cachedDefaults = scores
-            scores
-        }
+        get() = _cachedDefaults ?: computeDefaultOrganScores().also { _cachedDefaults = it }
     private var _cachedDefaults: Map<ResourceLocation, Float>? = null
+
+    private fun computeDefaultOrganScores(): Map<ResourceLocation, Float> {
+        val scores = baseOrganScores.toMutableMap()
+        val organManager = net.tigereye.chestcavity.chestcavities.organs.OrganManager
+        for (i in 0 until defaultInventory.containerSize) {
+            val stack = defaultInventory.getItem(i)
+            if (stack.isEmpty) continue
+            val data = organManager.getEntry(stack)
+                ?: catchExceptionalOrgan(stack)
+                ?: continue
+            val ratio = kotlin.math.min(stack.count.toFloat() / stack.maxStackSize.toFloat(), 1f)
+            data.organScores.forEach { (key, value) ->
+                scores[key] = scores.getOrDefault(key, 0f) + value * ratio
+            }
+        }
+        return scores
+    }
 
     override val heartBleedCap: Float
         get() = if (bossChestCavity) 300f else 4f
@@ -91,6 +104,7 @@ class GeneratedChestCavityType(
 
     // --- Mutators for serializer ---
 
+    fun invalidateCache() { _cachedDefaults = null }
     fun setDefaultInventory(inv: ChestCavityInventory) { defaultInventory = inv }
     fun setBaseOrganScores(scores: Map<ResourceLocation, Float>) { baseOrganScores = scores; _cachedDefaults = null }
     fun setExceptionalOrgans(organs: Map<Ingredient, Map<ResourceLocation, Float>>) { exceptionalOrgans = organs }

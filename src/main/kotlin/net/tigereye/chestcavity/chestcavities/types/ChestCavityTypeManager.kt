@@ -37,6 +37,8 @@ object ChestCavityTypeManager : PreparableReloadListener {
             .thenAcceptAsync({ (loadedTypes, loadedAssignments) ->
                 types = loadedTypes
                 assignments = loadedAssignments
+                // Invalidate cached default scores so they recompute with fresh OrganManager data
+                types.values.forEach { it.invalidateCache() }
                 ChestCavity.LOGGER.info("Loaded ${types.size} chest cavity types, ${assignments.size} assignments.")
             }, gameExecutor)
     }

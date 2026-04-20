@@ -31,6 +31,10 @@ object OrganManager : PreparableReloadListener {
             .thenAcceptAsync({ data ->
                 organData = data
                 ChestCavity.LOGGER.info("Loaded ${data.size} organs.")
+                // Invalidate type caches since they depend on organ data
+                net.tigereye.chestcavity.chestcavities.types.ChestCavityTypeManager.types.values.forEach {
+                    it.invalidateCache()
+                }
             }, gameExecutor)
     }
 
