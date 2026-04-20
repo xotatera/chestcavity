@@ -67,6 +67,7 @@ class ChestCavityInstance(
         inventory.removeListener(this)
         if (ccTag.contains("Inventory")) inventory.readTags(ccTag.getList("Inventory", 10))
         inventory.addListener(this)
+        net.tigereye.chestcavity.util.ChestCavityUtil.evaluateChestCavity(this)
     }
 
     fun toTag(tag: CompoundTag) {

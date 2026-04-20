@@ -26,6 +26,7 @@ object OrganUpdateListeners {
         updateHeart(entity, cc)
         updateStrength(entity, cc)
         updateSpeed(entity, cc)
+        updateSwimSpeed(entity, cc)
         updateSpine(entity, cc)
         updateKnockbackResistance(entity, cc)
         updateIncompatibility(entity, cc)
