@@ -157,7 +157,10 @@ object ChestCavityUtil {
                 cc.onHitListeners.add(OrganOnHitContext(stack, stack.item as OrganOnHitListener))
             }
             if (!data.pseudoOrgan) {
-                // TODO: compatibility checking when enchantment system is ported
+                val compatibility = getCompatibilityLevel(cc, stack)
+                if (compatibility < 1) {
+                    addOrganScore(CCOrganScores.INCOMPATIBILITY, 1f, scores)
+                }
             }
         }
 
@@ -270,6 +273,16 @@ object ChestCavityUtil {
             data.organScores.forEach { (key, value) ->
                 addOrganScore(key, value * ratio * SHULKER_DILUTION, scores)
             }
+        }
+    }
+
+    fun getCompatibilityLevel(cc: ChestCavityInstance, stack: ItemStack): Int {
+        if (stack.isEmpty) return 1
+        val compat = stack.get(net.tigereye.chestcavity.registration.CCDataComponents.ORGAN_COMPATIBILITY.get())
+        return when {
+            compat == null -> 1  // Untagged organ — universal
+            compat.ownerUuid == cc.compatibilityId -> 2  // Your organ
+            else -> 0  // Someone else's organ — incompatible
         }
     }
 

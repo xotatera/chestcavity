@@ -106,6 +106,15 @@ class GeneratedChestCavityType(
 
     override fun setOrganCompatibility(instance: ChestCavityInstance) {
         instance.compatibilityId = instance.owner.uuid
+        val name = runCatching { instance.owner.displayName?.string ?: "" }.getOrDefault("")
+        for (i in 0 until instance.inventory.containerSize) {
+            val stack = instance.inventory.getItem(i)
+            if (stack.isEmpty) continue
+            stack.set(
+                net.tigereye.chestcavity.registration.CCDataComponents.ORGAN_COMPATIBILITY.get(),
+                net.tigereye.chestcavity.registration.OrganCompatibility(instance.compatibilityId, name)
+            )
+        }
     }
 
     override fun isOpenable(instance: ChestCavityInstance): Boolean {
