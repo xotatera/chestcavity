@@ -3,11 +3,14 @@ package net.tigereye.chestcavity.listeners
 import net.minecraft.world.effect.MobEffectInstance
 import net.minecraft.world.effect.MobEffects
 import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.monster.Creeper
 import net.minecraft.world.entity.player.Player
 import net.tigereye.chestcavity.CCConfig
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance
 import net.tigereye.chestcavity.registration.CCOrganScores
 import net.tigereye.chestcavity.registration.CCStatusEffects
+import net.tigereye.chestcavity.util.ChestCavityUtil
+import kotlin.math.max
 import kotlin.math.min
 
 object OrganTickListeners {
@@ -18,10 +21,13 @@ object OrganTickListeners {
         tickHealth(entity, cc)
         tickFiltration(entity, cc)
         tickBuoyant(entity, cc)
+        tickCrystalsynthesis(entity, cc)
         tickPhotosynthesis(entity, cc)
         tickHydroallergenic(entity, cc)
         tickHydrophobia(entity, cc)
         tickGlowing(entity, cc)
+        tickSwimSpeed(entity, cc)
+        tickCreeperFuse(entity, cc)
     }
 
     private fun tickIncompatibility(entity: LivingEntity, cc: ChestCavityInstance) {
@@ -114,10 +120,79 @@ object OrganTickListeners {
         net.tigereye.chestcavity.util.OrganUtil.teleportRandomly(entity, hydrophobia * 32)
     }
 
+    private fun tickCrystalsynthesis(entity: LivingEntity, cc: ChestCavityInstance) {
+        if (entity.level().isClientSide) return
+        val crystalsynthesis = cc.organScore(CCOrganScores.CRYSTALSYNTHESIS)
+
+        // If connected crystal was destroyed, deal damage
+        val crystal = cc.connectedCrystal
+        if (crystal != null) {
+            if (crystal.isRemoved) {
+                entity.hurt(entity.damageSources().starve(), crystalsynthesis * 2)
+                cc.connectedCrystal = null
+            } else if (crystalsynthesis == 0f) {
+                cc.connectedCrystal = null
+            }
+        }
+
+        if (crystalsynthesis <= 0) return
+        if (entity.level().gameTime % CCConfig.CRYSTALSYNTHESIS_FREQUENCY.get() != 0L) return
+
+        // Find nearest end crystal
+        val range = CCConfig.CRYSTALSYNTHESIS_RANGE.get().toDouble()
+        val box = entity.boundingBox.inflate(range)
+        val nearest = entity.level().getEntitiesOfClass(
+            net.minecraft.world.entity.boss.enderdragon.EndCrystal::class.java, box
+        ).minByOrNull { it.distanceToSqr(entity) }
+
+        val oldCrystal = cc.connectedCrystal
+        cc.connectedCrystal = nearest
+        if (oldCrystal != null && oldCrystal != nearest) {
+            oldCrystal.setBeamTarget(null)
+        }
+
+        val linked = cc.connectedCrystal ?: return
+        linked.setBeamTarget(entity.blockPosition().below(2))
+
+        // Heal/feed based on crystal link
+        if (entity is net.minecraft.world.entity.player.Player) {
+            val food = entity.foodData
+            when {
+                food.needsFood() -> food.eat(1, 0f)
+                food.saturationLevel < food.foodLevel -> food.eat(1, crystalsynthesis / 10f)
+                else -> entity.heal(crystalsynthesis / 5f)
+            }
+        } else {
+            entity.heal(crystalsynthesis / 5f)
+        }
+    }
+
     private fun tickGlowing(entity: LivingEntity, cc: ChestCavityInstance) {
         if (entity.level().isClientSide) return
         if (cc.organScore(CCOrganScores.GLOWING) <= 0) return
         if (entity.hasEffect(MobEffects.GLOWING)) return
         entity.addEffect(MobEffectInstance(MobEffects.GLOWING, 200, 0, false, true, true))
+    }
+
+    private fun tickSwimSpeed(entity: LivingEntity, cc: ChestCavityInstance) {
+        if (!entity.isInWater) return
+        val diff = cc.organScore(CCOrganScores.SWIM_SPEED) - cc.type.getDefaultOrganScore(CCOrganScores.SWIM_SPEED)
+        if (diff == 0f) return
+        val boost = diff * CCConfig.SWIMSPEED_FACTOR.get().toFloat() / 8f
+        if (boost == 0f) return
+        val vel = entity.deltaMovement
+        val horizontalBoost = 1f + boost
+        entity.deltaMovement = vel.multiply(horizontalBoost.toDouble(), 1.0, horizontalBoost.toDouble())
+    }
+
+    private fun tickCreeperFuse(entity: LivingEntity, cc: ChestCavityInstance) {
+        if (entity !is Creeper) return
+        if (!entity.isAlive) return
+        if (!cc.opened) return
+        if (cc.organScore(CCOrganScores.CREEPY) > 0) return
+        // No fuse organ — cancel ignition by setting swell direction to -1
+        if (entity.swellDir > 0) {
+            entity.swellDir = -1
+        }
     }
 }

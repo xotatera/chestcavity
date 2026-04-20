@@ -182,18 +182,54 @@ object CCEvents {
         }
     }
 
-    // --- Entity interaction (chest opener on mobs) ---
+    // --- Entity interaction (chest opener on mobs, milking silk, shearing silk) ---
     @SubscribeEvent
     fun onEntityInteract(event: PlayerInteractEvent.EntityInteract) {
         val player = event.entity
         val stack = player.getItemInHand(event.hand)
-        val opener = stack.item as? net.tigereye.chestcavity.items.ChestOpener ?: return
         val target = event.target as? LivingEntity ?: return
-        if (target is net.minecraft.world.entity.player.Player && !CCConfig.CAN_OPEN_OTHER_PLAYERS.get()) return
 
-        opener.openChestCavity(player, target, shouldKnockback = true)
-        event.cancellationResult = net.minecraft.world.InteractionResult.SUCCESS
-        event.isCanceled = true
+        // Chest opener
+        val opener = stack.item as? net.tigereye.chestcavity.items.ChestOpener
+        if (opener != null) {
+            if (target is net.minecraft.world.entity.player.Player && !CCConfig.CAN_OPEN_OTHER_PLAYERS.get()) return
+            opener.openChestCavity(player, target, shouldKnockback = true)
+            event.cancellationResult = net.minecraft.world.InteractionResult.SUCCESS
+            event.isCanceled = true
+            return
+        }
+
+        // Shearing: if using shears on an entity with silk organs, produce silk
+        if (stack.`is`(net.minecraft.world.item.Items.SHEARS)) {
+            val cce = ChestCavityEntity.of(target) ?: return
+            val cc = cce.chestCavityInstance
+            if (!cc.opened) return
+            val silk = cc.organScore(CCOrganScores.SILK)
+            if (silk <= 0) return
+            if (silk >= 2) {
+                val cobweb = net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.COBWEB, silk.toInt() / 2)
+                target.spawnAtLocation(cobweb)
+            }
+            if (silk.toInt() % 2 >= 1) {
+                target.spawnAtLocation(net.minecraft.world.item.Items.STRING)
+            }
+            return
+        }
+
+        // Milking: if using bucket on a cow-like entity, produce silk
+        if (stack.`is`(net.minecraft.world.item.Items.BUCKET) && target is net.minecraft.world.entity.animal.Cow) {
+            val cce = ChestCavityEntity.of(target) ?: return
+            val cc = cce.chestCavityInstance
+            if (!cc.opened) return
+            val silk = cc.organScore(CCOrganScores.SILK)
+            if (silk <= 0) return
+            if (target.hasEffect(net.tigereye.chestcavity.registration.CCStatusEffects.SILK_COOLDOWN)) return
+            net.tigereye.chestcavity.util.OrganUtil.spinWeb(target, cc, silk)
+            target.addEffect(net.minecraft.world.effect.MobEffectInstance(
+                net.tigereye.chestcavity.registration.CCStatusEffects.SILK_COOLDOWN,
+                CCConfig.SILK_COOLDOWN.get(), 0, false, false, true
+            ))
+        }
     }
 
     // --- Jump height modification ---
