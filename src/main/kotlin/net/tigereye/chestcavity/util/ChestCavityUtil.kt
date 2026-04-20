@@ -142,6 +142,12 @@ object ChestCavityUtil {
             val stack = cc.inventory.getItem(i)
             if (stack.isEmpty) continue
 
+            // Shulker boxes act as pseudo-organs: contents contribute at 1/27 strength
+            if (isShulkerBox(stack)) {
+                evaluateShulkerContents(stack, cc, scores)
+                continue
+            }
+
             val data = lookupOrgan(stack, cc) ?: continue
             val ratio = min(stack.count.toFloat() / stack.maxStackSize.toFloat(), 1f)
             data.organScores.forEach { (key, value) ->
@@ -241,6 +247,30 @@ object ChestCavityUtil {
             cc.owner.spawnAtLocation(cc.inventory.removeItemNoUpdate(slot))
         }
         cc.inventory.setItem(slot, stack)
+    }
+
+    private const val SHULKER_DILUTION = 1f / 27f
+
+    private fun isShulkerBox(stack: ItemStack): Boolean {
+        val item = stack.item
+        if (item !is net.minecraft.world.item.BlockItem) return false
+        return item.block is net.minecraft.world.level.block.ShulkerBoxBlock
+    }
+
+    private fun evaluateShulkerContents(
+        stack: ItemStack,
+        cc: ChestCavityInstance,
+        scores: MutableMap<ResourceLocation, Float>
+    ) {
+        val container = stack.get(net.minecraft.core.component.DataComponents.CONTAINER) ?: return
+        container.stream().forEach { innerStack ->
+            if (innerStack.isEmpty) return@forEach
+            val data = lookupOrgan(innerStack, cc) ?: return@forEach
+            val ratio = min(innerStack.count.toFloat() / innerStack.maxStackSize.toFloat(), 1f)
+            data.organScores.forEach { (key, value) ->
+                addOrganScore(key, value * ratio * SHULKER_DILUTION, scores)
+            }
+        }
     }
 
     fun destroyOrgansWithKey(cc: ChestCavityInstance, organ: ResourceLocation) {
