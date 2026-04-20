@@ -77,7 +77,28 @@ object OrganActivationListeners {
     private fun activateFurnacePowered(entity: LivingEntity, cc: ChestCavityInstance) {
         val furnacePowered = cc.organScore(CCOrganScores.FURNACE_POWERED).toInt()
         if (furnacePowered < 1) return
-        // TODO: fuel lookup via NeoForge fuel API, furnace power stacking
+
+        val mainHand = entity.getItemBySlot(EquipmentSlot.MAINHAND)
+        val offHand = entity.getItemBySlot(EquipmentSlot.OFFHAND)
+
+        val fuelMain = mainHand.getBurnTime(null)
+        val fuelOff = offHand.getBurnTime(null)
+
+        val stack = when {
+            fuelMain > 0 -> mainHand
+            fuelOff > 0 -> offHand
+            else -> return
+        }
+        val fuelValue = if (fuelMain > 0) fuelMain else fuelOff
+
+        val currentAmplifier = entity.getEffect(CCStatusEffects.FURNACE_POWER)?.amplifier ?: -1
+        if (currentAmplifier >= furnacePowered - 1) return
+
+        entity.removeEffect(CCStatusEffects.FURNACE_POWER)
+        entity.addEffect(MobEffectInstance(
+            CCStatusEffects.FURNACE_POWER, fuelValue, currentAmplifier + 1, false, false, true
+        ))
+        stack.shrink(1)
     }
 
     private fun activateIronRepair(entity: LivingEntity, cc: ChestCavityInstance) {
@@ -86,10 +107,12 @@ object OrganActivationListeners {
         if (entity.hasEffect(CCStatusEffects.IRON_REPAIR_COOLDOWN)) return
         if (entity.health >= entity.maxHealth) return
 
-        val stack = entity.getItemBySlot(EquipmentSlot.MAINHAND).takeIf { !it.isEmpty }
-            ?: entity.getItemBySlot(EquipmentSlot.OFFHAND).takeIf { !it.isEmpty }
+        val ironTag = net.minecraft.tags.ItemTags.create(
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(net.tigereye.chestcavity.ChestCavity.MODID, "iron_repair_material")
+        )
+        val stack = entity.getItemBySlot(EquipmentSlot.MAINHAND).takeIf { !it.isEmpty && it.`is`(ironTag) }
+            ?: entity.getItemBySlot(EquipmentSlot.OFFHAND).takeIf { !it.isEmpty && it.`is`(ironTag) }
             ?: return
-        // TODO: check against iron repair material tag
 
         entity.heal(entity.maxHealth * CCConfig.IRON_REPAIR_PERCENT.get().toFloat())
         entity.playSound(SoundEvents.IRON_GOLEM_REPAIR, 0.75f, 1f)
