@@ -130,6 +130,7 @@ object ChestCavityUtil {
             scores.clear()
             cc.type.defaultOrganScores.let { scores.putAll(it) }
             cc.organScores = scores
+            organUpdate(cc)
             return
         }
 
@@ -192,8 +193,9 @@ object ChestCavityUtil {
     // --- Tick ---
 
     fun onTick(cc: ChestCavityInstance) {
-        if (!cc.opened) return
-        OrganTickListeners.tickAll(cc.owner, cc)
+        if (cc.opened) {
+            OrganTickListeners.tickAll(cc.owner, cc)
+        }
         organUpdate(cc)
     }
 
