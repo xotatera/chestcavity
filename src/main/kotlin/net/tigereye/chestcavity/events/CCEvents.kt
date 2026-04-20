@@ -1,7 +1,5 @@
 package net.tigereye.chestcavity.events
 
-import net.minecraft.network.chat.Component
-import net.minecraft.world.SimpleMenuProvider
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.common.EventBusSubscriber
 import net.neoforged.neoforge.event.RegisterCommandsEvent
@@ -12,9 +10,6 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent
 import net.neoforged.neoforge.event.tick.EntityTickEvent
 import net.tigereye.chestcavity.ChestCavity
 import net.tigereye.chestcavity.chestcavities.ChestCavityEntity
-import net.tigereye.chestcavity.registration.CCItems
-import net.tigereye.chestcavity.registration.CCOrganScores
-import net.tigereye.chestcavity.ui.ChestCavityMenu
 import net.tigereye.chestcavity.util.ChestCavityUtil
 
 @EventBusSubscriber(modid = ChestCavity.MODID)
@@ -59,24 +54,10 @@ object CCEvents {
     fun onEntityInteract(event: PlayerInteractEvent.EntityInteract) {
         val player = event.entity
         val stack = player.getItemInHand(event.hand)
-        if (stack.item != CCItems.CHEST_OPENER.get()) return
-
+        val opener = stack.item as? net.tigereye.chestcavity.items.ChestOpener ?: return
         val target = event.target as? net.minecraft.world.entity.LivingEntity ?: return
-        val cce = ChestCavityEntity.of(target) ?: return
-        val cc = cce.chestCavityInstance
 
-        if (!cc.type.isOpenable(cc)) return
-        if (cc.organScore(CCOrganScores.EASE_OF_ACCESS) <= 0) {
-            target.hurt(player.damageSources().playerAttack(player), 4f)
-        }
-        if (!target.isAlive) return
-
-        val inv = ChestCavityUtil.openChestCavity(cc)
-        val name = runCatching { target.displayName?.string ?: "" }.getOrDefault("")
-        player.openMenu(SimpleMenuProvider(
-            { id, playerInv, _ -> ChestCavityMenu(id, playerInv, inv) },
-            Component.literal("${name}'s Chest Cavity")
-        ))
+        opener.openChestCavity(player, target)
         event.isCanceled = true
     }
 

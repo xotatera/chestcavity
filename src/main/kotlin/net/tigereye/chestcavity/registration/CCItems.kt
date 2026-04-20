@@ -7,12 +7,15 @@ import net.minecraft.world.item.Tiers
 import net.neoforged.neoforge.registries.DeferredItem
 import net.neoforged.neoforge.registries.DeferredRegister
 import net.tigereye.chestcavity.ChestCavity
+import net.tigereye.chestcavity.items.ChestOpener
 
 object CCItems {
     val ITEMS: DeferredRegister.Items = DeferredRegister.createItems(ChestCavity.MODID)
 
     // --- Tools ---
-    val CHEST_OPENER = item("chest_opener") { stacksTo(1) }
+    val CHEST_OPENER: DeferredItem<Item> = ITEMS.register("chest_opener") { ->
+        ChestOpener(Item.Properties().stacksTo(1))
+    }
     val WOODEN_CLEAVER = cleaver("wooden_cleaver", Tiers.WOOD)
     val STONE_CLEAVER = cleaver("stone_cleaver", Tiers.STONE)
     val GOLD_CLEAVER = cleaver("gold_cleaver", Tiers.GOLD)
