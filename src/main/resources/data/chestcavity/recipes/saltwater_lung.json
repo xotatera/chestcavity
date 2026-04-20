@@ -1,15 +1,15 @@
-
 {
   "type": "minecraft:crafting_shapeless",
   "ingredients": [
-      {
+    {
       "item": "chestcavity:lung"
-      },
-      {
+    },
+    {
       "item": "minecraft:heart_of_the_sea"
-      }
+    }
   ],
   "result": {
-    "item": "chestcavity:saltwater_lung"
+    "id": "chestcavity:saltwater_lung",
+    "count": 1
   }
 }

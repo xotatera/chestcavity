@@ -5,14 +5,11 @@
     "IRI"
   ],
   "key": {
-    "I": {
-      "item": "minecraft:iron_ingot"
-    },
-    "R": {
-      "item": "minecraft:redstone"
-    }
+    "I": "minecraft:iron_ingot",
+    "R": "minecraft:redstone"
   },
   "result": {
-    "item": "chestcavity:golem_cable"
+    "id": "chestcavity:golem_cable",
+    "count": 1
   }
 }

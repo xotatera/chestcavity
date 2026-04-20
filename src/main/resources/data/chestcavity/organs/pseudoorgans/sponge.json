@@ -1,0 +1,8 @@
+{
+  "itemID": "minecraft:sponge",
+  "pseudoOrgan": true,
+  "organScores": [
+    {"id":"chestcavity:water_breath","value": "0.75"},
+    {"id":"chestcavity:breath_capacity","value": "0.75"}
+  ]
+}

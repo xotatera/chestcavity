@@ -1,9 +1,10 @@
 {
   "type": "chestcavity:crafting_salvage",
-  "ingredient": {
-    "item": "chestcavity:rotten_muscle"
-  },
+  "ingredient": "chestcavity:rotten_muscle",
   "required": 4,
-  "result": "minecraft:rotten_flesh",
+  "result": {
+    "id": "minecraft:rotten_flesh",
+    "count": 1
+  },
   "count": 1
 }

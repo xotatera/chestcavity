@@ -6,15 +6,11 @@
     "P  "
   ],
   "key": {
-    "P": {
-      "item": "minecraft:piston"
-    },
-    "R": {
-      "item": "minecraft:redstone"
-    }
+    "P": "minecraft:piston",
+    "R": "minecraft:redstone"
   },
   "result": {
-    "item": "chestcavity:piston_muscle",
+    "id": "chestcavity:piston_muscle",
     "count": 4
   }
 }

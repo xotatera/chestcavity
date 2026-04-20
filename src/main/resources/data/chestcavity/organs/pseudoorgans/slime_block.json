@@ -1,0 +1,9 @@
+{
+  "itemID": "minecraft:slime_block",
+  "pseudoOrgan": true,
+  "organScores": [
+    {"id":"chestcavity:leaping","value": "0.75"},
+    {"id":"chestcavity:buoyant","value": "0.25"},
+    {"id":"chestcavity:speed","value": "-0.5"}
+  ]
+}

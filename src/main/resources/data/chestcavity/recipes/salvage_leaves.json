@@ -1,9 +1,10 @@
 {
   "type": "chestcavity:crafting_salvage",
-  "ingredient": {
-    "item": "chestcavity:shifting_leaves"
-  },
+  "ingredient": "chestcavity:shifting_leaves",
   "required": 4,
-  "result": "minecraft:oak_leaves",
+  "result": {
+    "id": "minecraft:oak_leaves",
+    "count": 1
+  },
   "count": 1
 }

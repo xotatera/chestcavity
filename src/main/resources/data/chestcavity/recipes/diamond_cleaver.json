@@ -5,14 +5,11 @@
     "IS"
   ],
   "key": {
-    "I": {
-      "item": "minecraft:diamond"
-    },
-    "S": {
-      "item": "minecraft:stick"
-    }
+    "I": "minecraft:diamond",
+    "S": "minecraft:stick"
   },
   "result": {
-    "item": "chestcavity:diamond_cleaver"
+    "id": "chestcavity:diamond_cleaver",
+    "count": 1
   }
 }

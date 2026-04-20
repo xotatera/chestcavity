@@ -5,14 +5,11 @@
     "IS"
   ],
   "key": {
-    "I": {
-      "item": "minecraft:iron_ingot"
-    },
-    "S": {
-      "item": "minecraft:stick"
-    }
+    "I": "minecraft:iron_ingot",
+    "S": "minecraft:stick"
   },
   "result": {
-    "item": "chestcavity:iron_cleaver"
+    "id": "chestcavity:iron_cleaver",
+    "count": 1
   }
 }

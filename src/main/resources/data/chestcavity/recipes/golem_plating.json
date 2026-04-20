@@ -6,14 +6,11 @@
     "IW"
   ],
   "key": {
-    "I": {
-      "item": "minecraft:iron_ingot"
-    },
-    "W": {
-      "tag": "minecraft:planks"
-    }
+    "I": "minecraft:iron_ingot",
+    "W": "#minecraft:planks"
   },
   "result": {
-    "item": "chestcavity:golem_plating"
+    "id": "chestcavity:golem_plating",
+    "count": 1
   }
 }

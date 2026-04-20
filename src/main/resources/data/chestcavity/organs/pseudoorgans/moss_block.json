@@ -1,0 +1,7 @@
+{
+  "itemID": "minecraft:moss_block",
+  "pseudoOrgan": true,
+  "organScores": [
+    {"id":"chestcavity:photosynthesis","value": "0.75"}
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "itemID": "minecraft:ender_pearl",
+  "pseudoOrgan": true,
+  "organScores": [
+    {"id":"chestcavity:arrow_dodging","value": "0.75"},
+    {"id":"chestcavity:hydrophobia","value": "0.75"}
+  ]
+}

@@ -5,14 +5,11 @@
     "IS"
   ],
   "key": {
-    "I": {
-      "tag": "minecraft:planks"
-    },
-    "S": {
-      "item": "minecraft:stick"
-    }
+    "I": "#minecraft:planks",
+    "S": "minecraft:stick"
   },
   "result": {
-    "item": "chestcavity:wooden_cleaver"
+    "id": "chestcavity:wooden_cleaver",
+    "count": 1
   }
 }

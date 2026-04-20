@@ -1,0 +1,39 @@
+modLoader = "kotlinforforge"
+loaderVersion = "[5,)"
+license = "Apache-2.0"
+issueTrackerURL = "https://github.com/Tigereye504/chestcavity/issues"
+
+[[mods]]
+modId = "chestcavity"
+version = "3.0.0"
+displayName = "Chest Cavity"
+description = '''Perfectly Safe Extra Storage'''
+authors = "David Troyer"
+logoFile = "assets/chestcavity/icon.png"
+
+[[mixins]]
+config = "chestcavity.mixins.json"
+
+[[accessTransformers]]
+file = "META-INF/accesstransformer.cfg"
+
+[[dependencies.chestcavity]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.chestcavity]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1,1.21.2)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.chestcavity]]
+modId = "kotlinforforge"
+type = "required"
+versionRange = "[5,)"
+ordering = "NONE"
+side = "BOTH"
