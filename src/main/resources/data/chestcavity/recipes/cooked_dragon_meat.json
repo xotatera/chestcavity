@@ -1,9 +1,10 @@
 {
-    "type": "minecraft:smelting",
-    "ingredient": {
-      "item": "chestcavity:raw_dragon_meat"
-    },
-    "result": "chestcavity:cooked_dragon_meat",
-    "experience": 1.0,
-    "cookingtime": 400
-  }
+  "type": "minecraft:smelting",
+  "ingredient": "chestcavity:raw_dragon_meat",
+  "result": {
+    "id": "chestcavity:cooked_dragon_meat",
+    "count": 1
+  },
+  "experience": 1.0,
+  "cookingtime": 400
+}

@@ -6,14 +6,11 @@
     " H "
   ],
   "key": {
-    "H": {
-      "item": "minecraft:hopper"
-    },
-    "F": {
-      "item": "minecraft:furnace"
-    }
+    "H": "minecraft:hopper",
+    "F": "minecraft:furnace"
   },
   "result": {
-    "item": "chestcavity:inner_furnace"
+    "id": "chestcavity:inner_furnace",
+    "count": 1
   }
 }

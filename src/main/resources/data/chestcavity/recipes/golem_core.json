@@ -6,17 +6,12 @@
     " I "
   ],
   "key": {
-    "I": {
-      "item": "minecraft:iron_ingot"
-    },
-    "B": {
-      "item": "minecraft:iron_block"
-    },
-    "P": {
-      "item": "minecraft:carved_pumpkin"
-    }
+    "I": "minecraft:iron_ingot",
+    "B": "minecraft:iron_block",
+    "P": "minecraft:carved_pumpkin"
   },
   "result": {
-    "item": "chestcavity:golem_core"
+    "id": "chestcavity:golem_core",
+    "count": 1
   }
 }

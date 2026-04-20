@@ -1,9 +1,10 @@
 {
   "type": "chestcavity:crafting_salvage",
-  "ingredient": {
-    "item": "chestcavity:piston_muscle"
-  },
+  "ingredient": "chestcavity:piston_muscle",
   "required": 4,
-  "result": "chestcavity:iron_scrap",
+  "result": {
+    "id": "chestcavity:iron_scrap",
+    "count": 1
+  },
   "count": 1
 }

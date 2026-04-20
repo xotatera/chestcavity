@@ -1,9 +1,10 @@
 {
-    "type": "minecraft:smelting",
-    "ingredient": {
-      "item": "chestcavity:raw_alien_sausage"
-    },
-    "result": "chestcavity:alien_sausage",
-    "experience": 0.35,
-    "cookingtime": 200
-  }
+  "type": "minecraft:smelting",
+  "ingredient": "chestcavity:raw_alien_sausage",
+  "result": {
+    "id": "chestcavity:alien_sausage",
+    "count": 1
+  },
+  "experience": 0.35,
+  "cookingtime": 200
+}

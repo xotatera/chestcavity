@@ -1,9 +1,10 @@
 {
-    "type": "minecraft:smelting",
-    "ingredient": {
-      "item": "chestcavity:iron_scrap"
-    },
-    "result": "minecraft:iron_nugget",
-    "experience": 0.35,
-    "cookingtime": 200
-  }
+  "type": "minecraft:smelting",
+  "ingredient": "chestcavity:iron_scrap",
+  "result": {
+    "id": "minecraft:iron_nugget",
+    "count": 1
+  },
+  "experience": 0.35,
+  "cookingtime": 200
+}

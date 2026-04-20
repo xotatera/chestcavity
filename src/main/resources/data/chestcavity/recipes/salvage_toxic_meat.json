@@ -1,9 +1,10 @@
 {
   "type": "chestcavity:crafting_salvage",
-  "ingredient": {
-    "tag": "chestcavity:salvageable_toxic_meat"
-  },
+  "ingredient": "#chestcavity:salvageable_toxic_meat",
   "required": 4,
-  "result": "chestcavity:raw_toxic_meat",
+  "result": {
+    "id": "chestcavity:raw_toxic_meat",
+    "count": 1
+  },
   "count": 1
 }
