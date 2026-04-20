@@ -1,8 +1,0 @@
-{
-  "itemID": "minecraft:honeycomb",
-  "pseudoOrgan": true,
-  "organScores": [
-    {"id":"chestcavity:nutrition","value": "0.5"},
-    {"id":"chestcavity:digestion","value": "0.25"}
-  ]
-}

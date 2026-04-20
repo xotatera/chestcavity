@@ -1,7 +1,0 @@
-{
-  "itemID": "minecraft:dragon_breath",
-  "pseudoOrgan": true,
-  "organScores": [
-    {"id":"chestcavity:dragon_breath","value": "0.75"}
-  ]
-}

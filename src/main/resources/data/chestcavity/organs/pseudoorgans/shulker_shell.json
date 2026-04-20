@@ -1,9 +1,0 @@
-{
-  "itemID": "minecraft:shulker_shell",
-  "pseudoOrgan": true,
-  "organScores": [
-    {"id":"chestcavity:defense","value": "1.0"},
-    {"id":"chestcavity:knockback_resistant","value": "0.5"},
-    {"id":"chestcavity:speed","value": "-0.25"}
-  ]
-}

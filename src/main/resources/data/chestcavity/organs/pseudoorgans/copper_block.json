@@ -1,9 +1,0 @@
-{
-  "itemID": "minecraft:copper_block",
-  "pseudoOrgan": true,
-  "organScores": [
-    {"id":"chestcavity:defense","value": "0.75"},
-    {"id":"chestcavity:iron_repair","value": "0.25"},
-    {"id":"chestcavity:speed","value": "-0.25"}
-  ]
-}
