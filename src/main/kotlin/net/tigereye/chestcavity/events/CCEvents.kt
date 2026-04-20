@@ -124,13 +124,11 @@ object CCEvents {
     }
 
     // --- Status effect modification (kidneys/liver/buff purging) ---
-    @SubscribeEvent
-    fun onMobEffectApplicable(event: MobEffectEvent.Applicable) {
-        // We allow all effects but modify duration in Added
-    }
+    private var modifyingEffect = false
 
     @SubscribeEvent
     fun onMobEffectAdded(event: MobEffectEvent.Added) {
+        if (modifyingEffect) return
         val entity = event.entity as? LivingEntity ?: return
         val cce = ChestCavityEntity.of(entity) ?: return
         val cc = cce.chestCavityInstance
@@ -144,14 +142,14 @@ object CCEvents {
         if (category == net.minecraft.world.effect.MobEffectCategory.HARMFUL) {
             val filtration = cc.organScore(CCOrganScores.FILTRATION)
             val defaultFiltration = cc.type.getDefaultOrganScore(CCOrganScores.FILTRATION)
-            if (filtration > defaultFiltration) {
-                factor *= (1f - (filtration - defaultFiltration) * CCConfig.FILTRATION_DURATION_FACTOR.get().toFloat()).coerceIn(0f, 1f)
+            if (filtration > defaultFiltration && defaultFiltration > 0) {
+                factor *= (2f / (1f + filtration / defaultFiltration)).coerceIn(0.01f, 1f)
             }
             // Detoxification (liver)
             val detox = cc.organScore(CCOrganScores.DETOXIFICATION)
             val defaultDetox = cc.type.getDefaultOrganScore(CCOrganScores.DETOXIFICATION)
             if (detox > defaultDetox && detox > 0) {
-                factor *= (defaultDetox / detox).coerceIn(0f, 1f)
+                factor *= (2f / (1f + detox / defaultDetox)).coerceIn(0.01f, 1f)
             }
         }
 
@@ -159,7 +157,7 @@ object CCEvents {
         if (category == net.minecraft.world.effect.MobEffectCategory.BENEFICIAL) {
             val buffPurge = cc.organScore(CCOrganScores.BUFF_PURGING)
             if (buffPurge > 0) {
-                factor *= (1f - buffPurge * CCConfig.BUFF_PURGING_DURATION_FACTOR.get().toFloat()).coerceIn(0f, 1f)
+                factor *= (1f / (1f + buffPurge * CCConfig.BUFF_PURGING_DURATION_FACTOR.get().toFloat())).coerceIn(0.01f, 1f)
             }
         }
 
@@ -167,18 +165,20 @@ object CCEvents {
         if (effect.effect == net.minecraft.world.effect.MobEffects.WITHER) {
             val withered = cc.organScore(CCOrganScores.WITHERED)
             if (withered > 0) {
-                factor *= (1f - withered * CCConfig.WITHERED_DURATION_FACTOR.get().toFloat()).coerceIn(0f, 1f)
+                factor *= (1f / (1f + withered * CCConfig.WITHERED_DURATION_FACTOR.get().toFloat())).coerceIn(0.01f, 1f)
             }
         }
 
         // Replace effect with shorter duration if modified
         if (factor < 1f) {
             val newDuration = (effect.duration * factor).toInt().coerceAtLeast(1)
+            modifyingEffect = true
             entity.removeEffect(effect.effect)
             entity.addEffect(net.minecraft.world.effect.MobEffectInstance(
                 effect.effect, newDuration, effect.amplifier,
                 effect.isAmbient, effect.isVisible, effect.showIcon()
             ))
+            modifyingEffect = false
         }
     }
 

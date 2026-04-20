@@ -34,10 +34,13 @@ object OrganFoodListeners {
         val efs = computeEffectiveScores(stack, food, cc)
 
         val baseHunger = food.nutrition()
-        val baseSatMod = food.saturation()
+        // food.saturation() is the absolute value (nutrition * modifier * 2)
+        // Recover the raw modifier for our calculations
+        val rawSatMod = if (baseHunger > 0) food.saturation() / (baseHunger * 2f) else 0f
 
-        val saturationGain = ChestCavityUtil.applyNutrition(cc, efs.nutrition, baseSatMod) * baseHunger * 2f
+        val saturationGain = ChestCavityUtil.applyNutrition(cc, efs.nutrition, rawSatMod) * baseHunger * 2f
         val hungerGain = ChestCavityUtil.applyDigestion(cc, efs.digestion, baseHunger)
+        // Compute the modifier that produces our desired saturation with the modified hunger
         val newSatMod = if (hungerGain > 0) saturationGain / (hungerGain * 2f) else 0f
 
         return hungerGain to newSatMod

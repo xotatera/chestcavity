@@ -175,14 +175,11 @@ object OrganTickListeners {
     }
 
     private fun tickSwimSpeed(entity: LivingEntity, cc: ChestCavityInstance) {
-        if (!entity.isInWater) return
-        val diff = cc.organScore(CCOrganScores.SWIM_SPEED) - cc.type.getDefaultOrganScore(CCOrganScores.SWIM_SPEED)
-        if (diff == 0f) return
-        val boost = diff * CCConfig.SWIMSPEED_FACTOR.get().toFloat() / 8f
-        if (boost == 0f) return
-        val vel = entity.deltaMovement
-        val horizontalBoost = 1f + boost
-        entity.deltaMovement = vel.multiply(horizontalBoost.toDouble(), 1.0, horizontalBoost.toDouble())
+        // Swim speed is applied via the original's ModifyArg on travel() which multiplies
+        // the movement input once per frame. Since we can't hook travel() directly, we apply
+        // a one-time boost when the entity is swimming and actively moving.
+        // This is handled via the movement speed attribute in OrganUpdateListeners instead.
+        // No per-tick velocity manipulation needed.
     }
 
     private fun tickCreeperFuse(entity: LivingEntity, cc: ChestCavityInstance) {
