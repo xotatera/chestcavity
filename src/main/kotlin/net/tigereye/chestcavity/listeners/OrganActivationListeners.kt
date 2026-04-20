@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.listeners
 
+import kotlin.math.roundToInt
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.sounds.SoundEvents
@@ -40,7 +41,7 @@ object OrganActivationListeners {
     }
 
     private fun activateCreepy(entity: LivingEntity, cc: ChestCavityInstance) {
-        if (cc.organScore(CCOrganScores.CREEPY) < 1) return
+        if (cc.organScore(CCOrganScores.CREEPY).roundToInt() < 1) return
         if (entity.hasEffect(CCStatusEffects.EXPLOSION_COOLDOWN)) return
         val yield = cc.organScore(CCOrganScores.EXPLOSIVE)
         ChestCavityUtil.destroyOrgansWithKey(cc, CCOrganScores.EXPLOSIVE)
@@ -63,19 +64,19 @@ object OrganActivationListeners {
     }
 
     private fun activateDragonBombs(entity: LivingEntity, cc: ChestCavityInstance) {
-        if (cc.organScore(CCOrganScores.DRAGON_BOMBS) < 1) return
+        if (cc.organScore(CCOrganScores.DRAGON_BOMBS).roundToInt() < 1) return
         if (entity.hasEffect(CCStatusEffects.DRAGON_BOMB_COOLDOWN)) return
-        OrganUtil.queueDragonBombs(entity, cc, cc.organScore(CCOrganScores.DRAGON_BOMBS).toInt())
+        OrganUtil.queueDragonBombs(entity, cc, cc.organScore(CCOrganScores.DRAGON_BOMBS).roundToInt())
     }
 
     private fun activateForcefulSpit(entity: LivingEntity, cc: ChestCavityInstance) {
-        if (cc.organScore(CCOrganScores.FORCEFUL_SPIT) < 1) return
+        if (cc.organScore(CCOrganScores.FORCEFUL_SPIT).roundToInt() < 1) return
         if (entity.hasEffect(CCStatusEffects.FORCEFUL_SPIT_COOLDOWN)) return
-        OrganUtil.queueForcefulSpit(entity, cc, cc.organScore(CCOrganScores.FORCEFUL_SPIT).toInt())
+        OrganUtil.queueForcefulSpit(entity, cc, cc.organScore(CCOrganScores.FORCEFUL_SPIT).roundToInt())
     }
 
     private fun activateFurnacePowered(entity: LivingEntity, cc: ChestCavityInstance) {
-        val furnacePowered = cc.organScore(CCOrganScores.FURNACE_POWERED).toInt()
+        val furnacePowered = cc.organScore(CCOrganScores.FURNACE_POWERED).roundToInt()
         if (furnacePowered < 1) return
 
         val mainHand = entity.getItemBySlot(EquipmentSlot.MAINHAND)
@@ -125,9 +126,9 @@ object OrganActivationListeners {
     }
 
     private fun activateGhastly(entity: LivingEntity, cc: ChestCavityInstance) {
-        if (cc.organScore(CCOrganScores.GHASTLY) < 1) return
+        if (cc.organScore(CCOrganScores.GHASTLY).roundToInt() < 1) return
         if (entity.hasEffect(CCStatusEffects.GHASTLY_COOLDOWN)) return
-        OrganUtil.queueGhastlyFireballs(entity, cc, cc.organScore(CCOrganScores.GHASTLY).toInt())
+        OrganUtil.queueGhastlyFireballs(entity, cc, cc.organScore(CCOrganScores.GHASTLY).roundToInt())
     }
 
     private fun activateGrazing(entity: LivingEntity, cc: ChestCavityInstance) {
@@ -156,15 +157,15 @@ object OrganActivationListeners {
     }
 
     private fun activatePyromancy(entity: LivingEntity, cc: ChestCavityInstance) {
-        if (cc.organScore(CCOrganScores.PYROMANCY) < 1) return
+        if (cc.organScore(CCOrganScores.PYROMANCY).roundToInt() < 1) return
         if (entity.hasEffect(CCStatusEffects.PYROMANCY_COOLDOWN)) return
-        OrganUtil.queuePyromancyFireballs(entity, cc, cc.organScore(CCOrganScores.PYROMANCY).toInt())
+        OrganUtil.queuePyromancyFireballs(entity, cc, cc.organScore(CCOrganScores.PYROMANCY).roundToInt())
     }
 
     private fun activateShulkerBullets(entity: LivingEntity, cc: ChestCavityInstance) {
-        if (cc.organScore(CCOrganScores.SHULKER_BULLETS) < 1) return
+        if (cc.organScore(CCOrganScores.SHULKER_BULLETS).roundToInt() < 1) return
         if (entity.hasEffect(CCStatusEffects.SHULKER_BULLET_COOLDOWN)) return
-        OrganUtil.queueShulkerBullets(entity, cc, cc.organScore(CCOrganScores.SHULKER_BULLETS).toInt())
+        OrganUtil.queueShulkerBullets(entity, cc, cc.organScore(CCOrganScores.SHULKER_BULLETS).roundToInt())
     }
 
     private fun activateSilk(entity: LivingEntity, cc: ChestCavityInstance) {
