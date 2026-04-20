@@ -1,16 +1,27 @@
 package net.tigereye.chestcavity.events
 
+import net.minecraft.tags.DamageTypeTags
+import net.minecraft.world.damagesource.DamageTypes
+import net.minecraft.world.entity.LivingEntity
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.common.EventBusSubscriber
 import net.neoforged.neoforge.event.RegisterCommandsEvent
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent
+import net.neoforged.neoforge.event.entity.living.MobEffectEvent
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent
 import net.neoforged.neoforge.event.tick.EntityTickEvent
+import net.tigereye.chestcavity.CCConfig
 import net.tigereye.chestcavity.ChestCavity
 import net.tigereye.chestcavity.chestcavities.ChestCavityEntity
+import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstanceFactory
+import net.tigereye.chestcavity.registration.CCOrganScores
 import net.tigereye.chestcavity.util.ChestCavityUtil
+import net.tigereye.chestcavity.util.OrganUtil
+import kotlin.math.max
+import kotlin.math.min
 
 @EventBusSubscriber(modid = ChestCavity.MODID)
 object CCEvents {
@@ -21,8 +32,8 @@ object CCEvents {
         val cce = ChestCavityEntity.of(entity) ?: return
         val cc = cce.chestCavityInstance
         // Lazily resolve type after datapacks have loaded
-        if (cc.type.defaultOrganScores.isEmpty() && entity is net.minecraft.world.entity.LivingEntity) {
-            val resolved = net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstanceFactory.resolveType(entity.type)
+        if (cc.type.defaultOrganScores.isEmpty() && entity is LivingEntity) {
+            val resolved = ChestCavityInstanceFactory.resolveType(entity.type)
             if (resolved.defaultOrganScores.isNotEmpty()) {
                 cc.type = resolved
                 ChestCavityUtil.evaluateChestCavity(cc)
@@ -31,13 +42,64 @@ object CCEvents {
         ChestCavityUtil.onTick(cc)
     }
 
+    // --- Damage: apply defenses to TARGET ---
     @SubscribeEvent
-    fun onLivingDamage(event: LivingDamageEvent.Pre) {
+    fun onLivingDamage(event: LivingIncomingDamageEvent) {
         val target = event.entity
         val cce = ChestCavityEntity.of(target) ?: return
         val cc = cce.chestCavityInstance
-        val newDamage = ChestCavityUtil.applyDefenses(cc, event.source, event.newDamage)
-        event.newDamage = newDamage
+        if (!cc.opened) return
+
+        var damage = event.amount
+
+        // Arrow dodging
+        if (event.source.`is`(DamageTypeTags.IS_PROJECTILE)) {
+            val dodge = cc.organScore(CCOrganScores.ARROW_DODGING)
+            if (dodge > 0 && !target.hasEffect(net.tigereye.chestcavity.registration.CCStatusEffects.ARROW_DODGE_COOLDOWN)) {
+                if (OrganUtil.teleportRandomly(target, CCConfig.ARROW_DODGE_DISTANCE.get() / dodge)) {
+                    target.addEffect(net.minecraft.world.effect.MobEffectInstance(
+                        net.tigereye.chestcavity.registration.CCStatusEffects.ARROW_DODGE_COOLDOWN,
+                        (CCConfig.ARROW_DODGE_COOLDOWN.get() / dodge).toInt(), 0, false, false, true
+                    ))
+                    event.amount = 0f
+                    return
+                }
+            }
+        }
+
+        // Bone defense
+        if (!event.source.`is`(DamageTypeTags.BYPASSES_ARMOR)) {
+            damage = ChestCavityUtil.applyBoneDefense(cc, damage)
+        }
+
+        // Fall damage reduction from leaping
+        if (event.source.`is`(DamageTypes.FALL)) {
+            damage = ChestCavityUtil.applyLeapingToFallDamage(cc, damage)
+            damage = ChestCavityUtil.applyImpactResistant(cc, damage)
+        }
+
+        // Fly into wall
+        if (event.source.`is`(DamageTypes.FLY_INTO_WALL)) {
+            damage = ChestCavityUtil.applyImpactResistant(cc, damage)
+        }
+
+        // Fire resistance
+        if (event.source.`is`(DamageTypeTags.IS_FIRE)) {
+            damage = ChestCavityUtil.applyFireResistant(cc, damage)
+        }
+
+        event.amount = damage
+    }
+
+    // --- Damage: apply on-hit from ATTACKER ---
+    @SubscribeEvent
+    fun onLivingDamageAttacker(event: LivingDamageEvent.Post) {
+        val source = event.source
+        val attacker = source.entity as? LivingEntity ?: return
+        val cce = ChestCavityEntity.of(attacker) ?: return
+        val cc = cce.chestCavityInstance
+        if (!cc.opened) return
+        ChestCavityUtil.onHit(cc, source, event.entity, event.newDamage)
     }
 
     @SubscribeEvent
@@ -50,7 +112,9 @@ object CCEvents {
     fun onPlayerClone(event: PlayerEvent.Clone) {
         val oldCce = ChestCavityEntity.of(event.original) ?: return
         val newCce = ChestCavityEntity.of(event.entity) ?: return
-        newCce.chestCavityInstance.copyFrom(oldCce.chestCavityInstance)
+        if (CCConfig.KEEP_CHEST_CAVITY.get() || event.isWasDeath.not()) {
+            newCce.chestCavityInstance.copyFrom(oldCce.chestCavityInstance)
+        }
     }
 
     @SubscribeEvent
@@ -59,19 +123,95 @@ object CCEvents {
         event.newSpeed = ChestCavityUtil.applyNervesToMining(cce.chestCavityInstance, event.newSpeed)
     }
 
+    // --- Status effect modification (kidneys/liver/buff purging) ---
+    @SubscribeEvent
+    fun onMobEffectApplicable(event: MobEffectEvent.Applicable) {
+        // We allow all effects but modify duration in Added
+    }
+
+    @SubscribeEvent
+    fun onMobEffectAdded(event: MobEffectEvent.Added) {
+        val entity = event.entity as? LivingEntity ?: return
+        val cce = ChestCavityEntity.of(entity) ?: return
+        val cc = cce.chestCavityInstance
+        if (!cc.opened) return
+
+        val effect = event.effectInstance ?: return
+        val category = effect.effect.value().category
+        var factor = 1f
+
+        // Filtration (kidneys shorten harmful)
+        if (category == net.minecraft.world.effect.MobEffectCategory.HARMFUL) {
+            val filtration = cc.organScore(CCOrganScores.FILTRATION)
+            val defaultFiltration = cc.type.getDefaultOrganScore(CCOrganScores.FILTRATION)
+            if (filtration > defaultFiltration) {
+                factor *= (1f - (filtration - defaultFiltration) * CCConfig.FILTRATION_DURATION_FACTOR.get().toFloat()).coerceIn(0f, 1f)
+            }
+            // Detoxification (liver)
+            val detox = cc.organScore(CCOrganScores.DETOXIFICATION)
+            val defaultDetox = cc.type.getDefaultOrganScore(CCOrganScores.DETOXIFICATION)
+            if (detox > defaultDetox && detox > 0) {
+                factor *= (defaultDetox / detox).coerceIn(0f, 1f)
+            }
+        }
+
+        // Buff purging (withered bones shorten beneficial)
+        if (category == net.minecraft.world.effect.MobEffectCategory.BENEFICIAL) {
+            val buffPurge = cc.organScore(CCOrganScores.BUFF_PURGING)
+            if (buffPurge > 0) {
+                factor *= (1f - buffPurge * CCConfig.BUFF_PURGING_DURATION_FACTOR.get().toFloat()).coerceIn(0f, 1f)
+            }
+        }
+
+        // Withered (shorten wither)
+        if (effect.effect == net.minecraft.world.effect.MobEffects.WITHER) {
+            val withered = cc.organScore(CCOrganScores.WITHERED)
+            if (withered > 0) {
+                factor *= (1f - withered * CCConfig.WITHERED_DURATION_FACTOR.get().toFloat()).coerceIn(0f, 1f)
+            }
+        }
+
+        // Replace effect with shorter duration if modified
+        if (factor < 1f) {
+            val newDuration = (effect.duration * factor).toInt().coerceAtLeast(1)
+            entity.removeEffect(effect.effect)
+            entity.addEffect(net.minecraft.world.effect.MobEffectInstance(
+                effect.effect, newDuration, effect.amplifier,
+                effect.isAmbient, effect.isVisible, effect.showIcon()
+            ))
+        }
+    }
+
+    // --- Entity interaction (chest opener on mobs) ---
     @SubscribeEvent
     fun onEntityInteract(event: PlayerInteractEvent.EntityInteract) {
         val player = event.entity
         val stack = player.getItemInHand(event.hand)
         val opener = stack.item as? net.tigereye.chestcavity.items.ChestOpener ?: return
-        val target = event.target as? net.minecraft.world.entity.LivingEntity ?: return
-        if (target is net.minecraft.world.entity.player.Player && !net.tigereye.chestcavity.CCConfig.CAN_OPEN_OTHER_PLAYERS.get()) return
+        val target = event.target as? LivingEntity ?: return
+        if (target is net.minecraft.world.entity.player.Player && !CCConfig.CAN_OPEN_OTHER_PLAYERS.get()) return
 
         opener.openChestCavity(player, target, shouldKnockback = true)
         event.cancellationResult = net.minecraft.world.InteractionResult.SUCCESS
         event.isCanceled = true
     }
 
+    // --- Jump height modification ---
+    @SubscribeEvent
+    fun onLivingJump(event: net.neoforged.neoforge.event.entity.living.LivingEvent.LivingJumpEvent) {
+        val cce = ChestCavityEntity.of(event.entity) ?: return
+        val cc = cce.chestCavityInstance
+        if (!cc.opened) return
+        val leaping = cc.organScore(CCOrganScores.LEAPING)
+        val defaultLeaping = cc.type.getDefaultOrganScore(CCOrganScores.LEAPING)
+        val diff = leaping - defaultLeaping
+        if (diff == 0f) return
+        val multiplier = max(0f, 1f + diff * 0.25f)
+        val vel = event.entity.deltaMovement
+        event.entity.deltaMovement = vel.add(0.0, vel.y * (multiplier - 1.0).toDouble(), 0.0)
+    }
+
+    // --- Commands ---
     @SubscribeEvent
     fun onRegisterCommands(event: RegisterCommandsEvent) {
         CCCommands.register(event.dispatcher)

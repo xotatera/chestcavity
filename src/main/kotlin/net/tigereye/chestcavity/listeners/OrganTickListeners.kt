@@ -111,7 +111,7 @@ object OrganTickListeners {
         if (hydrophobia <= 0) return
         if (cc.type.getDefaultOrganScore(CCOrganScores.HYDROPHOBIA) != 0f) return
         if (!entity.isInWaterRainOrBubble) return
-        // TODO: wire to OrganUtil.teleportRandomly when ported
+        net.tigereye.chestcavity.util.OrganUtil.teleportRandomly(entity, hydrophobia * 32)
     }
 
     private fun tickGlowing(entity: LivingEntity, cc: ChestCavityInstance) {

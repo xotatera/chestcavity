@@ -45,7 +45,7 @@ class ChestCavityInstance(
     fun oldOrganScore(id: ResourceLocation): Float = oldOrganScores.getOrDefault(id, 0f)
 
     override fun containerChanged(container: Container) {
-        // Will hook into ChestCavityUtil.evaluateChestCavity when ported
+        net.tigereye.chestcavity.util.ChestCavityUtil.evaluateChestCavity(this)
     }
 
     fun fromTag(tag: CompoundTag, owner: LivingEntity) {
