@@ -25,14 +25,15 @@ class ChestCavityInventory(
 
     fun getTags(): ListTag {
         val registryAccess = instance?.owner?.registryAccess() ?: return ListTag()
-        return (0 until containerSize)
-            .map { i -> i to getItem(i) }
-            .filter { (_, stack) -> !stack.isEmpty }
-            .fold(ListTag()) { list, (i, stack) ->
-                val compound = CompoundTag().apply { putByte("Slot", i.toByte()) }
-                stack.save(registryAccess, compound)
-                list.apply { add(compound) }
-            }
+        val list = ListTag()
+        for (i in 0 until containerSize) {
+            val stack = getItem(i)
+            if (stack.isEmpty) continue
+            val compound = stack.save(registryAccess) as? CompoundTag ?: continue
+            compound.putByte("Slot", i.toByte())
+            list.add(compound)
+        }
+        return list
     }
 
     override fun stillValid(player: Player): Boolean {
