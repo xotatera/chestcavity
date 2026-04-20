@@ -211,6 +211,73 @@ object CCEvents {
         event.entity.deltaMovement = vel.add(0.0, vel.y * (multiplier - 1.0).toDouble(), 0.0)
     }
 
+    // --- Breath/air modification ---
+    @SubscribeEvent
+    fun onLivingBreathe(event: net.neoforged.neoforge.event.entity.living.LivingBreatheEvent) {
+        val entity = event.entity
+        val cce = ChestCavityEntity.of(entity) ?: return
+        val cc = cce.chestCavityInstance
+        if (!cc.opened) return
+
+        val defaultCapacity = cc.type.getDefaultOrganScore(CCOrganScores.BREATH_CAPACITY)
+        val defaultWaterbreath = cc.type.getDefaultOrganScore(CCOrganScores.WATERBREATH)
+        val defaultRecovery = cc.type.getDefaultOrganScore(CCOrganScores.BREATH_RECOVERY)
+        val capacity = cc.organScore(CCOrganScores.BREATH_CAPACITY)
+        val waterbreath = cc.organScore(CCOrganScores.WATERBREATH)
+        val recovery = cc.organScore(CCOrganScores.BREATH_RECOVERY)
+
+        // If nothing changed from defaults, don't interfere
+        if (capacity == defaultCapacity && waterbreath == defaultWaterbreath && recovery == defaultRecovery) return
+
+        // Underwater: waterbreath allows breathing, capacity slows air loss
+        if (entity.isUnderWater) {
+            var wb = waterbreath
+            if (entity.isSprinting) wb /= 4f
+            if (wb > 0) {
+                // Can breathe underwater — prevent air loss and possibly recover
+                event.setCanBreathe(true)
+                if (wb >= 1f) event.refillAirAmount = event.refillAirAmount.coerceAtLeast(4)
+            } else if (capacity != defaultCapacity) {
+                // Modified lung capacity changes air loss rate
+                val ratio = if (capacity > 0) min(2f / capacity, 20f) else 20f
+                if (ratio > 1f) {
+                    // Lose air faster
+                    event.setConsumeAirAmount((event.consumeAirAmount * ratio).toInt().coerceAtLeast(1))
+                } else if (ratio < 1f) {
+                    // Lose air slower (better lungs)
+                    event.setConsumeAirAmount((event.consumeAirAmount * ratio).toInt().coerceAtLeast(0))
+                }
+            }
+        } else {
+            // On land: breath recovery and possible suffocation for gill-only creatures
+            var breath = recovery
+            if (entity.isSprinting) breath /= 4f
+            if (entity.isInWaterRainOrBubble) breath += waterbreath / 4f
+
+            if (breath <= 0 && recovery < defaultRecovery) {
+                // Can't breathe on land (gills only) — suffocate
+                event.setCanBreathe(false)
+                event.refillAirAmount = 0
+            } else if (breath > defaultRecovery && defaultRecovery > 0) {
+                // Extra breath recovery — refill faster
+                event.setRefillAirAmount((event.refillAirAmount * breath / defaultRecovery).toInt().coerceAtLeast(1))
+            }
+        }
+    }
+
+    // --- Dimension change sync ---
+    @SubscribeEvent
+    fun onPlayerChangedDimension(event: PlayerEvent.PlayerChangedDimensionEvent) {
+        val cce = ChestCavityEntity.of(event.entity) ?: return
+        val cc = cce.chestCavityInstance
+        if (event.entity is net.minecraft.server.level.ServerPlayer) {
+            val payload = net.tigereye.chestcavity.registration.ChestCavityUpdatePayload(cc.opened, cc.organScores)
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
+                event.entity as net.minecraft.server.level.ServerPlayer, payload
+            )
+        }
+    }
+
     // --- Commands ---
     @SubscribeEvent
     fun onRegisterCommands(event: RegisterCommandsEvent) {
