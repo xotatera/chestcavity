@@ -20,10 +20,12 @@ object CCItemEvents {
         val stack = event.itemStack
         val tooltip = event.toolTip
 
-        // Show organ scores
+        // Show organ scores — skip pseudo-organs unless it's a shulker box
         val componentData = stack.get(CCDataComponents.ORGAN_DATA.get())
         val organData = componentData?.toOrganData() ?: OrganManager.getEntry(stack)
-        if (organData != null) {
+        val isShulker = stack.item is net.minecraft.world.item.BlockItem &&
+            (stack.item as net.minecraft.world.item.BlockItem).block is net.minecraft.world.level.block.ShulkerBoxBlock
+        if (organData != null && (!organData.pseudoOrgan || isShulker)) {
             displayOrganQuality(organData.organScores, tooltip)
         }
 
