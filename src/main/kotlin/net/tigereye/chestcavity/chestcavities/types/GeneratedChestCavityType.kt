@@ -74,12 +74,15 @@ class GeneratedChestCavityType(
     override fun isOpenable(instance: ChestCavityInstance): Boolean {
         if (playerChestCavity) return true
         val owner = instance.owner
-        if (!owner.getItemBySlot(EquipmentSlot.CHEST).isEmpty) return false
+        val chestVulnerable = owner.getItemBySlot(EquipmentSlot.CHEST).isEmpty
+        if (!chestVulnerable) return false
+        val easeOfAccess = instance.organScore(net.tigereye.chestcavity.registration.CCOrganScores.EASE_OF_ACCESS) > 0
+        if (easeOfAccess) return true
         val health = owner.health
         val maxHealth = owner.maxHealth
         val absThreshold = CCConfig.CHEST_OPENER_ABSOLUTE_HEALTH_THRESHOLD.get()
-        val fracThreshold = CCConfig.CHEST_OPENER_FRACTIONAL_HEALTH_THRESHOLD.get()
-        return health < absThreshold && (health / maxHealth) < fracThreshold
+        val fracThreshold = CCConfig.CHEST_OPENER_FRACTIONAL_HEALTH_THRESHOLD.get().toFloat()
+        return health <= absThreshold || health <= maxHealth * fracThreshold
     }
 
     override fun onDeath(instance: ChestCavityInstance) {

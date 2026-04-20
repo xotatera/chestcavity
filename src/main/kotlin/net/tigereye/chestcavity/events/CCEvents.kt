@@ -56,8 +56,10 @@ object CCEvents {
         val stack = player.getItemInHand(event.hand)
         val opener = stack.item as? net.tigereye.chestcavity.items.ChestOpener ?: return
         val target = event.target as? net.minecraft.world.entity.LivingEntity ?: return
+        if (target is net.minecraft.world.entity.player.Player && !net.tigereye.chestcavity.CCConfig.CAN_OPEN_OTHER_PLAYERS.get()) return
 
-        opener.openChestCavity(player, target)
+        opener.openChestCavity(player, target, shouldKnockback = true)
+        event.cancellationResult = net.minecraft.world.InteractionResult.SUCCESS
         event.isCanceled = true
     }
 
