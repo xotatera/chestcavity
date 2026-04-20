@@ -1,0 +1,7 @@
+{
+  "itemID": "chestcavity:peroxisome",
+  "organScores": [
+    {"id":"chestcavity:fire_resistant","value": "1.5"},
+    {"id":"chestcavity:detoxification","value": ".5"}
+  ]
+}

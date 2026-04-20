@@ -1,0 +1,8 @@
+{
+  "itemID": "chestcavity:cell_membrane",
+  "organScores": [
+    {"id":"chestcavity:filtration","value": "1"},
+    {"id":"chestcavity:defense","value": ".5"},
+    {"id":"chestcavity:breath_capacity","value": ".5"}
+  ]
+}

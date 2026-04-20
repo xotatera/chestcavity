@@ -1,0 +1,7 @@
+{
+  "itemID": "chestcavity:nucleus",
+  "organScores": [
+    {"id":"chestcavity:nerves","value": "1.25"},
+    {"id":"chestcavity:health","value": ".25"}
+  ]
+}

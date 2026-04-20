@@ -1,0 +1,8 @@
+{
+  "itemID": "chestcavity:lysosome",
+  "organScores": [
+    {"id":"chestcavity:rot_digestion","value": "1"},
+    {"id":"chestcavity:digestion","value": ".75"},
+    {"id":"chestcavity:detoxification","value": ".25"}
+  ]
+}

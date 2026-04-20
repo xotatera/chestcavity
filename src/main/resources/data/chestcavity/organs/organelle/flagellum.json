@@ -1,0 +1,8 @@
+{
+  "itemID": "chestcavity:flagellum",
+  "organScores": [
+    {"id":"chestcavity:speed","value": "1"},
+    {"id":"chestcavity:swim_speed","value": ".75"},
+    {"id":"chestcavity:leaping","value": ".25"}
+  ]
+}

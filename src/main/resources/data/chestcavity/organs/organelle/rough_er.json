@@ -1,0 +1,8 @@
+{
+  "itemID": "chestcavity:rough_er",
+  "organScores": [
+    {"id":"chestcavity:luck","value": ".75"},
+    {"id":"chestcavity:health","value": ".5"},
+    {"id":"chestcavity:detoxification","value": ".25"}
+  ]
+}

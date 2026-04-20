@@ -1,0 +1,7 @@
+{
+  "itemID": "chestcavity:chloroplast",
+  "organScores": [
+    {"id":"chestcavity:photosynthesis","value": "1.5"},
+    {"id":"chestcavity:endurance","value": ".5"}
+  ]
+}

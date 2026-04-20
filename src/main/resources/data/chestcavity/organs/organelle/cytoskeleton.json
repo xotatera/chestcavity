@@ -1,0 +1,8 @@
+{
+  "itemID": "chestcavity:cytoskeleton",
+  "organScores": [
+    {"id":"chestcavity:defense","value": "1"},
+    {"id":"chestcavity:strength","value": ".5"},
+    {"id":"chestcavity:knockback_resistant","value": ".5"}
+  ]
+}
