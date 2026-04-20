@@ -6,7 +6,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.tigereye.chestcavity.chestcavities.ChestCavityEntity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
-import net.tigereye.chestcavity.chestcavities.types.GeneratedChestCavityType;
+import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstanceFactory;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -22,9 +22,8 @@ public abstract class MixinLivingEntity implements ChestCavityEntity {
 
     @Inject(at = @At("TAIL"), method = "<init>")
     private void chestcavity$init(EntityType<?> entityType, Level level, CallbackInfo ci) {
-        chestcavity$instance = new ChestCavityInstance(
-                new GeneratedChestCavityType(),
-                (LivingEntity) (Object) this
+        chestcavity$instance = ChestCavityInstanceFactory.INSTANCE.create(
+                entityType, (LivingEntity) (Object) this
         );
     }
 
