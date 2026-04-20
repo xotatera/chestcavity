@@ -5,7 +5,6 @@ import net.neoforged.bus.api.IEventBus
 import net.neoforged.fml.ModContainer
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.config.ModConfig
-import net.neoforged.neoforge.common.NeoForge
 import net.tigereye.chestcavity.registration.CCAttachments
 import net.tigereye.chestcavity.registration.CCCreativeTabs
 import net.tigereye.chestcavity.registration.CCDataComponents
@@ -34,7 +33,6 @@ class ChestCavity(modEventBus: IEventBus, modContainer: ModContainer) {
 
         modContainer.registerConfig(ModConfig.Type.COMMON, CCConfig.SPEC)
 
-        NeoForge.EVENT_BUS.register(this)
         LOGGER.info("Chest Cavity initializing")
     }
 }
