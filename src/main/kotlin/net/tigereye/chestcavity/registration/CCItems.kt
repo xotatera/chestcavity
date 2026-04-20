@@ -8,6 +8,8 @@ import net.neoforged.neoforge.registries.DeferredItem
 import net.neoforged.neoforge.registries.DeferredRegister
 import net.tigereye.chestcavity.ChestCavity
 import net.tigereye.chestcavity.items.ChestOpener
+import net.tigereye.chestcavity.items.CreeperAppendix
+import net.tigereye.chestcavity.items.VenomGland
 
 object CCItems {
     val ITEMS: DeferredRegister.Items = DeferredRegister.createItems(ChestCavity.MODID)
@@ -120,7 +122,9 @@ object CCItems {
     val INSECT_STOMACH = organ("insect_stomach", CCFoodComponents.RAW_TOXIC_ORGAN_MEAT)
     val INSECT_CAECA = organ("insect_caeca", CCFoodComponents.RAW_TOXIC_ORGAN_MEAT)
     val SILK_GLAND = organ("silk_gland", CCFoodComponents.RAW_TOXIC_ORGAN_MEAT)
-    val VENOM_GLAND = organ("venom_gland", CCFoodComponents.RAW_TOXIC_ORGAN_MEAT)
+    val VENOM_GLAND: DeferredItem<Item> = ITEMS.register("venom_gland") { ->
+        VenomGland(Item.Properties().stacksTo(1).food(CCFoodComponents.RAW_TOXIC_ORGAN_MEAT))
+    }
 
     // --- Ender organs ---
     val ENDER_APPENDIX = organ("ender_appendix", CCFoodComponents.RAW_ALIEN_ORGAN_MEAT)
@@ -168,7 +172,9 @@ object CCItems {
     val SALTWATER_HEART = item("saltwater_heart") { stacksTo(1) }
     val SALTWATER_LUNG = item("saltwater_lung") { stacksTo(1) }
     val SALTWATER_MUSCLE = item("saltwater_muscle") { stacksTo(16) }
-    val CREEPER_APPENDIX = item("creeper_appendix") { stacksTo(1) }
+    val CREEPER_APPENDIX: DeferredItem<Item> = ITEMS.register("creeper_appendix") { ->
+        CreeperAppendix(Item.Properties().stacksTo(1))
+    }
     val SHIFTING_LEAVES = item("shifting_leaves") { stacksTo(16) }
     val SHULKER_SPLEEN = item("shulker_spleen") { stacksTo(1) }
 
