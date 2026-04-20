@@ -174,7 +174,7 @@ object ChestCavityUtil {
 
     fun generateChestCavityIfOpened(cc: ChestCavityInstance) {
         if (!cc.opened) return
-        cc.inventory.readTags(cc.type.getDefaultChestCavity().getTags())
+        cc.type.fillChestCavityInventory(cc.inventory)
         cc.type.setOrganCompatibility(cc)
     }
 

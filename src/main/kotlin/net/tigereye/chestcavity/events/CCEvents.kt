@@ -19,7 +19,16 @@ object CCEvents {
     fun onEntityTick(event: EntityTickEvent.Post) {
         val entity = event.entity
         val cce = ChestCavityEntity.of(entity) ?: return
-        ChestCavityUtil.onTick(cce.chestCavityInstance)
+        val cc = cce.chestCavityInstance
+        // Lazily resolve type after datapacks have loaded
+        if (cc.type.defaultOrganScores.isEmpty() && entity is net.minecraft.world.entity.LivingEntity) {
+            val resolved = net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstanceFactory.resolveType(entity.type)
+            if (resolved.defaultOrganScores.isNotEmpty()) {
+                cc.type = resolved
+                ChestCavityUtil.evaluateChestCavity(cc)
+            }
+        }
+        ChestCavityUtil.onTick(cc)
     }
 
     @SubscribeEvent
