@@ -76,6 +76,13 @@ object OrganUpdateListeners {
         }
     }
 
+    private fun updateSwimSpeed(entity: LivingEntity, cc: ChestCavityInstance) {
+        if (cc.oldOrganScore(CCOrganScores.SWIM_SPEED) == cc.organScore(CCOrganScores.SWIM_SPEED)) return
+        // NeoForge 1.21.1 doesn't have a swim speed attribute by default.
+        // Swim speed is applied via tick in water — no attribute modifier needed.
+        // The actual effect happens in OrganTickListeners or via the existing applySwimSpeedInWater utility.
+    }
+
     private fun updateKnockbackResistance(entity: LivingEntity, cc: ChestCavityInstance) {
         if (cc.oldOrganScore(CCOrganScores.KNOCKBACK_RESISTANT) == cc.organScore(CCOrganScores.KNOCKBACK_RESISTANT)) return
         val att = entity.getAttribute(Attributes.KNOCKBACK_RESISTANCE) ?: return

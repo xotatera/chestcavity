@@ -16,6 +16,7 @@ import net.tigereye.chestcavity.listeners.OrganOnHitContext
 import net.tigereye.chestcavity.listeners.OrganOnHitListener
 import net.tigereye.chestcavity.listeners.OrganTickListeners
 import net.tigereye.chestcavity.listeners.OrganUpdateListeners
+import net.tigereye.chestcavity.registration.CCItems
 import net.tigereye.chestcavity.registration.CCOrganScores
 import net.tigereye.chestcavity.registration.CCTagOrgans
 import net.tigereye.chestcavity.registration.CCStatusEffects
@@ -162,6 +163,12 @@ object ChestCavityUtil {
         if (cc.oldOrganScores == cc.organScores) return
         OrganUpdateListeners.onOrganUpdate(cc.owner, cc)
         cc.oldOrganScores = cc.organScores.toMap()
+        // Sync to client
+        val owner = cc.owner
+        if (!owner.level().isClientSide && owner is net.minecraft.server.level.ServerPlayer) {
+            val payload = net.tigereye.chestcavity.registration.ChestCavityUpdatePayload(cc.opened, cc.organScores)
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(owner, payload)
+        }
     }
 
     fun openChestCavity(cc: ChestCavityInstance): ChestCavityInventory {
@@ -204,6 +211,36 @@ object ChestCavityUtil {
     fun onDeath(entity: ChestCavityEntity) {
         val cc = entity.chestCavityInstance
         cc.type.onDeath(cc)
+        val owner = cc.owner
+        if (owner is net.minecraft.world.entity.player.Player) {
+            if (!CCConfig.KEEP_CHEST_CAVITY.get()) {
+                cc.compatibilityId = java.util.UUID.randomUUID()
+                generateChestCavityIfOpened(cc)
+            }
+            insertWelfareOrgans(cc)
+        }
+    }
+
+    fun insertWelfareOrgans(cc: ChestCavityInstance) {
+        if (cc.organScore(CCOrganScores.HEALTH) <= 0) {
+            forcefullyAddStack(cc, ItemStack(CCItems.ROTTEN_HEART.get()), 4)
+        }
+        if (cc.organScore(CCOrganScores.BREATH_RECOVERY) <= 0) {
+            forcefullyAddStack(cc, ItemStack(CCItems.ROTTEN_LUNG.get()), 3)
+        }
+        if (cc.organScore(CCOrganScores.NERVES) <= 0) {
+            forcefullyAddStack(cc, ItemStack(CCItems.ROTTEN_SPINE.get()), 13)
+        }
+        if (cc.organScore(CCOrganScores.STRENGTH) <= 0) {
+            forcefullyAddStack(cc, ItemStack(net.minecraft.world.item.Items.ROTTEN_FLESH, 16), 0)
+        }
+    }
+
+    private fun forcefullyAddStack(cc: ChestCavityInstance, stack: ItemStack, slot: Int) {
+        if (!cc.inventory.canAddItem(stack)) {
+            cc.owner.spawnAtLocation(cc.inventory.removeItemNoUpdate(slot))
+        }
+        cc.inventory.setItem(slot, stack)
     }
 
     fun destroyOrgansWithKey(cc: ChestCavityInstance, organ: ResourceLocation) {
