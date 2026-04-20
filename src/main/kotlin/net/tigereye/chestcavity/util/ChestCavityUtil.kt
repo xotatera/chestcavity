@@ -17,6 +17,7 @@ import net.tigereye.chestcavity.listeners.OrganOnHitListener
 import net.tigereye.chestcavity.listeners.OrganTickListeners
 import net.tigereye.chestcavity.listeners.OrganUpdateListeners
 import net.tigereye.chestcavity.registration.CCOrganScores
+import net.tigereye.chestcavity.registration.CCTagOrgans
 import net.tigereye.chestcavity.registration.CCStatusEffects
 import kotlin.math.max
 import kotlin.math.min
@@ -220,6 +221,12 @@ object ChestCavityUtil {
         cc.type.catchExceptionalOrgan(stack)?.let { return it }
         OrganManager.readNbtOrganData(stack)?.let { return it }
         OrganManager.getEntry(stack)?.let { return it }
+        // Check tag-based organs
+        for ((tag, scores) in CCTagOrgans.tagMap) {
+            if (stack.`is`(tag)) {
+                return net.tigereye.chestcavity.chestcavities.organs.OrganData(pseudoOrgan = true, organScores = scores)
+            }
+        }
         return null
     }
 

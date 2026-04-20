@@ -83,10 +83,9 @@ object OrganManager : PreparableReloadListener {
         organData[itemId(stack)]
 
     fun readNbtOrganData(stack: ItemStack): OrganData? {
-        // In 1.21.1, item NBT is replaced by DataComponents.
-        // Custom organ data will use a custom DataComponent when fully implemented.
-        // For now, return null (organs are looked up from the data-driven registry instead).
-        return null
+        val data = stack.get(net.tigereye.chestcavity.registration.CCDataComponents.ORGAN_DATA.get())
+            ?: return null
+        return data.toOrganData()
     }
 
     private fun itemId(stack: ItemStack): ResourceLocation =
