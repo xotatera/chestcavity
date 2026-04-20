@@ -11,6 +11,9 @@ description = '''Perfectly Safe Extra Storage'''
 authors = "David Troyer"
 logoFile = "assets/chestcavity/icon.png"
 
+[[mixins]]
+config = "chestcavity.mixins.json"
+
 [[accessTransformers]]
 file = "META-INF/accesstransformer.cfg"
 
