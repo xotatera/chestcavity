@@ -1,0 +1,8 @@
+{
+  "itemID": "minecraft:phantom_membrane",
+  "pseudoOrgan": true,
+  "organScores": [
+    {"id":"chestcavity:buoyant","value": "0.5"},
+    {"id":"chestcavity:endurance","value": "0.25"}
+  ]
+}

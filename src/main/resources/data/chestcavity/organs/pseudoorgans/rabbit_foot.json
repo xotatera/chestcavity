@@ -1,0 +1,8 @@
+{
+  "itemID": "minecraft:rabbit_foot",
+  "pseudoOrgan": true,
+  "organScores": [
+    {"id":"chestcavity:leaping","value": "0.5"},
+    {"id":"chestcavity:luck","value": "0.25"}
+  ]
+}
