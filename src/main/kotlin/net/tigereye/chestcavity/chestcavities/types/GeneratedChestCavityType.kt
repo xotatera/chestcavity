@@ -2,8 +2,10 @@ package net.tigereye.chestcavity.chestcavities.types
 
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.util.RandomSource
+import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.crafting.Ingredient
+import net.tigereye.chestcavity.CCConfig
 import net.tigereye.chestcavity.chestcavities.ChestCavityInventory
 import net.tigereye.chestcavity.chestcavities.ChestCavityType
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance
@@ -72,9 +74,12 @@ class GeneratedChestCavityType(
     override fun isOpenable(instance: ChestCavityInstance): Boolean {
         if (playerChestCavity) return true
         val owner = instance.owner
+        if (!owner.getItemBySlot(EquipmentSlot.CHEST).isEmpty) return false
         val health = owner.health
         val maxHealth = owner.maxHealth
-        return health < 20 && health / maxHealth < 0.5f
+        val absThreshold = CCConfig.CHEST_OPENER_ABSOLUTE_HEALTH_THRESHOLD.get()
+        val fracThreshold = CCConfig.CHEST_OPENER_FRACTIONAL_HEALTH_THRESHOLD.get()
+        return health < absThreshold && (health / maxHealth) < fracThreshold
     }
 
     override fun onDeath(instance: ChestCavityInstance) {
