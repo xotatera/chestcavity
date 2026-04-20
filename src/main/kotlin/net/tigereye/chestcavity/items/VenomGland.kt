@@ -32,8 +32,13 @@ class VenomGland(properties: Properties) : Item(properties), OrganOnHitListener 
         val existing = attacker.getEffect(CCStatusEffects.VENOM_COOLDOWN)
         if (existing != null && existing.duration != cooldownDuration) return damage
 
-        // TODO: read custom effects from DataComponent when implemented
-        target.addEffect(MobEffectInstance(MobEffects.POISON, 200, 0))
+        val potionContents = organ.get(net.minecraft.core.component.DataComponents.POTION_CONTENTS)
+        val customEffects = potionContents?.allEffects?.toList()
+        if (!customEffects.isNullOrEmpty()) {
+            customEffects.forEach { effect -> target.addEffect(MobEffectInstance(effect)) }
+        } else {
+            target.addEffect(MobEffectInstance(MobEffects.POISON, 200, 0))
+        }
 
         attacker.addEffect(MobEffectInstance(
             CCStatusEffects.VENOM_COOLDOWN, cooldownDuration, 0

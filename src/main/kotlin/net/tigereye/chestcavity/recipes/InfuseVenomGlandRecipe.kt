@@ -50,7 +50,21 @@ class InfuseVenomGlandRecipe(category: CraftingBookCategory) : CustomRecipe(cate
         }
         if (gland == null || potion == null) return ItemStack.EMPTY
         val output = gland.copy()
-        // TODO: transfer potion effects via DataComponent when organ data component is implemented
+        val potionContents = potion.get(net.minecraft.core.component.DataComponents.POTION_CONTENTS)
+        if (potionContents != null) {
+            val shortenedEffects = potionContents.allEffects.map { effect ->
+                net.minecraft.world.effect.MobEffectInstance(
+                    effect.effect, (effect.duration / 4).coerceAtLeast(1),
+                    effect.amplifier, effect.isAmbient, effect.isVisible, effect.showIcon()
+                )
+            }
+            output.set(
+                net.minecraft.core.component.DataComponents.POTION_CONTENTS,
+                net.minecraft.world.item.alchemy.PotionContents(
+                    java.util.Optional.empty(), java.util.Optional.empty(), shortenedEffects
+                )
+            )
+        }
         return output
     }
 
