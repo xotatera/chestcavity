@@ -1,8 +1,0 @@
-{
-  "itemID": "chestcavity:vacuole",
-  "organScores": [
-    {"id":"chestcavity:buoyant","value": ".75"},
-    {"id":"chestcavity:breath_capacity","value": "1"},
-    {"id":"chestcavity:digestion","value": ".25"}
-  ]
-}

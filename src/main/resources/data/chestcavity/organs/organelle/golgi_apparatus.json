@@ -1,8 +1,0 @@
-{
-  "itemID": "chestcavity:golgi_apparatus",
-  "organScores": [
-    {"id":"chestcavity:metabolism","value": "1"},
-    {"id":"chestcavity:speed","value": ".5"},
-    {"id":"chestcavity:nutrition","value": ".25"}
-  ]
-}

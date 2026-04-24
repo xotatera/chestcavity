@@ -1,8 +1,0 @@
-{
-  "itemID": "chestcavity:ribosome",
-  "organScores": [
-    {"id":"chestcavity:iron_repair","value": "1"},
-    {"id":"chestcavity:health","value": ".5"},
-    {"id":"chestcavity:strength","value": ".25"}
-  ]
-}

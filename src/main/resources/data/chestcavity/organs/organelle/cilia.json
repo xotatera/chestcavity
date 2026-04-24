@@ -1,8 +1,0 @@
-{
-  "itemID": "chestcavity:cilia",
-  "organScores": [
-    {"id":"chestcavity:nerves","value": ".75"},
-    {"id":"chestcavity:breath_recovery","value": ".75"},
-    {"id":"chestcavity:arrow_dodging","value": ".5"}
-  ]
-}

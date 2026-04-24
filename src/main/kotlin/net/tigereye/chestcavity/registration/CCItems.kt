@@ -178,22 +178,6 @@ object CCItems {
     val SHIFTING_LEAVES = item("shifting_leaves") { stacksTo(16) }
     val SHULKER_SPLEEN = item("shulker_spleen") { stacksTo(1) }
 
-    // --- Organelle organs ---
-    val MITOCHONDRIA = item("mitochondria") { stacksTo(1) }
-    val RIBOSOME = item("ribosome") { stacksTo(1) }
-    val SMOOTH_ER = item("smooth_er") { stacksTo(1) }
-    val ROUGH_ER = item("rough_er") { stacksTo(1) }
-    val GOLGI_APPARATUS = item("golgi_apparatus") { stacksTo(1) }
-    val LYSOSOME = item("lysosome") { stacksTo(1) }
-    val NUCLEUS = item("nucleus") { stacksTo(1) }
-    val CELL_MEMBRANE = item("cell_membrane") { stacksTo(1) }
-    val CYTOSKELETON = item("cytoskeleton") { stacksTo(1) }
-    val FLAGELLUM = item("flagellum") { stacksTo(1) }
-    val CILIA = item("cilia") { stacksTo(1) }
-    val PEROXISOME = item("peroxisome") { stacksTo(1) }
-    val CHLOROPLAST = item("chloroplast") { stacksTo(1) }
-    val VACUOLE = item("vacuole") { stacksTo(1) }
-
     // --- Crafting materials ---
     val SAUSAGE_SKIN = item("sausage_skin") { stacksTo(64) }
     val MINI_SAUSAGE_SKIN = item("mini_sausage_skin") { stacksTo(64) }
