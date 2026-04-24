@@ -7,9 +7,9 @@ object CCConfig {
 
     // Core
     val ORGAN_BUNDLE_LOOTING_BOOST = BUILDER.comment("Looting boost per level for organ drops")
-        .defineInRange("core.organ_bundle_looting_boost", 0.04, 0.0, 1.0)
+        .defineInRange("core.organ_bundle_looting_boost", 0.01, 0.0, 1.0)
     val UNIVERSAL_DONOR_RATE = BUILDER.comment("Chance of organs being universal donor")
-        .defineInRange("core.universal_donor_rate", 0.1, 0.0, 1.0)
+        .defineInRange("core.universal_donor_rate", 0.025, 0.0, 1.0)
     val ORGAN_REJECTION_DAMAGE = BUILDER.comment("Damage dealt by organ rejection")
         .defineInRange("core.organ_rejection_damage", 2, 0, 100)
     val ORGAN_REJECTION_RATE = BUILDER.comment("Base ticks between organ rejection checks")

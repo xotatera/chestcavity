@@ -269,5 +269,12 @@ object CCItems {
         tier: Tiers,
         extraProps: Item.Properties.() -> Item.Properties = { this }
     ): DeferredItem<SwordItem> =
-        ITEMS.register(name) { -> SwordItem(tier, Item.Properties().extraProps()) }
+        ITEMS.register(name) { ->
+            SwordItem(
+                tier,
+                Item.Properties()
+                    .attributes(SwordItem.createAttributes(tier, 3, -2.4f))
+                    .extraProps()
+            )
+        }
 }
