@@ -100,6 +100,16 @@ object CCEvents {
         val cc = cce.chestCavityInstance
         if (!cc.opened) return
         ChestCavityUtil.onHit(cc, source, event.entity, event.newDamage)
+        applyLaunching(attacker, event.entity, cc)
+    }
+
+    private fun applyLaunching(attacker: LivingEntity, target: LivingEntity, cc: net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance) {
+        val diff = cc.organScore(CCOrganScores.LAUNCHING) - cc.type.getDefaultOrganScore(CCOrganScores.LAUNCHING)
+        if (diff == 0f) return
+        if (!attacker.closerThan(target, 4.0)) return
+        val kbResist = target.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE)
+        val upward = (CCConfig.LAUNCHING_POWER.get() * diff * (1.0 - kbResist)).coerceAtLeast(0.0)
+        target.deltaMovement = target.deltaMovement.add(0.0, upward, 0.0)
     }
 
     @SubscribeEvent
@@ -135,6 +145,18 @@ object CCEvents {
         if (!cc.opened) return
 
         val effect = event.effectInstance ?: return
+
+        // Rotgut: suppress HUNGER effect if entity has rot digestion organs
+        if (effect.effect == net.minecraft.world.effect.MobEffects.HUNGER) {
+            val rotgut = cc.organScore(CCOrganScores.ROTGUT) + cc.organScore(CCOrganScores.ROT_DIGESTION)
+            if (rotgut > 0) {
+                modifyingEffect = true
+                entity.removeEffect(effect.effect)
+                modifyingEffect = false
+                return
+            }
+        }
+
         val category = effect.effect.value().category
         var factor = 1f
 

@@ -8,10 +8,12 @@ import net.tigereye.chestcavity.chestcavities.ChestCavityEntity;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance;
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstanceFactory;
 import org.jetbrains.annotations.NotNull;
+import net.tigereye.chestcavity.util.ChestCavityUtil;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(LivingEntity.class)
@@ -36,6 +38,16 @@ public abstract class MixinLivingEntity implements ChestCavityEntity {
     @Override
     public void setChestCavityInstance(@NotNull ChestCavityInstance instance) {
         chestcavity$instance = instance;
+    }
+
+    @ModifyVariable(
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;hasEffect(Lnet/minecraft/core/Holder;)Z"),
+            method = "travel",
+            ordinal = 1
+    )
+    private float chestcavity$modifySwimSpeed(float speed) {
+        return speed * ChestCavityUtil.INSTANCE.applySwimSpeedInWater(chestcavity$instance);
     }
 
     @Inject(method = "readAdditionalSaveData", at = @At("TAIL"))
