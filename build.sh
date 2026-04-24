@@ -6,7 +6,7 @@ set -e
 
 CONTAINER_IMAGE="docker.io/eclipse-temurin:21-jdk"
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
-MODS_DIR="/home/xota/.var/app/org.prismlauncher.PrismLauncher/data/PrismLauncher/instances/ChestCavity/minecraft/mods"
+JAR_OUT_DIR="$PROJECT_DIR/jars"
 
 echo "Building chestcavity with podman..."
 
@@ -19,8 +19,9 @@ podman run --rm \
 
 JAR="$PROJECT_DIR/build/libs/chestcavity-3.0.0.jar"
 if [ -f "$JAR" ]; then
-    cp "$JAR" "$MODS_DIR/chestcavity-3.0.0.jar"
-    echo "Installed to $MODS_DIR/chestcavity-3.0.0.jar"
+    mkdir -p "$JAR_OUT_DIR"
+    cp "$JAR" "$JAR_OUT_DIR/chestcavity-3.0.0.jar"
+    echo "Copied to $JAR_OUT_DIR/chestcavity-3.0.0.jar"
 else
     echo "Build failed - no jar found"
     exit 1

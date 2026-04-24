@@ -1,25 +1,70 @@
 # Chest Cavity
-Chest Cavity lets you use a 'chest opener' to access a secondary inventory. There are some items already in it, but those probably aren't important so you can take them out to make room for other stuff\*. 
 
-It also adds a variety of drops that are similar to the junk you discarded from your extra storage.
+A Minecraft mod that gives every living entity a chest cavity — a secondary inventory filled with organs that determine their biological stats. Use a chest opener to access it, swap organs between creatures, and face the consequences.
 
-*Side effects may include shortness of breath, inhibited healing, inability to fight off infection, vulnerability to physical harm, weakness, loss of nutrition, difficulty walking or running, and sacrifice to Aztec gods.*
+## NeoForge 1.21.1 Port
 
-## Requirements
-Requires Minecraft 1.16.x and Fabric API. 
+This is an unofficial port of [Tigereye504's Chest Cavity](https://github.com/Tigereye504/chestcavity) from Fabric 1.19.2 to **NeoForge 1.21.1**, rewritten in Kotlin.
 
-Also uses Onyx Studio's Cardinal Components.
+### Requirements
 
+- Minecraft 1.21.1
+- NeoForge 21.1.x
+- Kotlin for Forge (KFF) 5.5.0
 
-## Images
+### What's Ported
 
-![2_2_1 Organs](https://user-images.githubusercontent.com/12503726/99457027-2cd66c00-28df-11eb-9036-44a90c9e2b4c.png)
+- All original organs (hearts, lungs, muscles, intestines, stomachs, spines, ribs, appendix, kidneys, liver, spleen, etc.)
+- Chest opener tool and cleavers (wooden through netherite)
+- Organ scores and stat effects (health, speed, attack, defense, etc.)
+- Organ compatibility and rejection system
+- Mob-specific chest cavities (player, undead, ender, nether, boss, golem, creeper, etc.)
+- Organ drops from killed mobs (2.5% base chance, +1% per looting level)
+- Food crafting (sausages, organ meat, butchered meat)
+- Shulker boxes as pseudo-organs
+- Venom gland potion effects
+- Keybindings for opening your own chest cavity
+- All recipes (cleavers, sausages, saltwater organs, salvaging, cooking)
 
-![2_2_1 Basic Crafting](https://user-images.githubusercontent.com/12503726/99456311-0d8b0f00-28de-11eb-83d2-923cfb350691.png)
+### Changes from Original
 
-![2_2_1 Cooking](https://user-images.githubusercontent.com/12503726/99456319-111e9600-28de-11eb-95e3-5be74ab77381.png)
+- Ported from Fabric + Cardinal Components to NeoForge + Data Attachments
+- Java to Kotlin
+- Uses NeoForge DataComponents instead of NBT for organ data
+- Uses NeoForge DeferredRegister for all registrations
+- 1.21.1 API changes (item tags path, ItemStack.save(), attribute modifiers, etc.)
 
-![2_2_1 Sausage](https://user-images.githubusercontent.com/12503726/99456341-167be080-28de-11eb-9f44-04e412aa41dd.png)
+## Gameplay
 
-![Example Chest Cavities](https://user-images.githubusercontent.com/12503726/99141626-fc05e680-2601-11eb-8437-a07a02188096.png)
+Use a **chest opener** (iron ingot + lever + stick) to access any mob's chest cavity when they're below half health. Your own cavity can be opened anytime.
 
+Organs determine stats:
+- **Hearts** grant max health
+- **Muscles** increase attack damage and movement speed
+- **Lungs** allow breathing underwater longer
+- **Intestines/Stomach** affect food processing
+- **Ribs** provide armor
+- **Spine** improves attack speed and mining speed
+- **Kidneys** filter poisons faster
+- **Liver** provides detoxification
+- **Appendix** grants luck
+
+Removing organs has consequences. Putting in new ones from other creatures requires compatibility — mismatched organs cause rejection damage.
+
+**Cleavers** are butchering tools that massively boost organ drop rates when used as the killing blow.
+
+## Building
+
+```bash
+./build.sh
+```
+
+Requires podman and Java 21. The script builds via a container and outputs the jar to `./jars/`.
+
+## License
+
+Apache License 2.0 — see [LICENSE](LICENSE)
+
+## Credits
+
+Original mod by [Tigereye504](https://github.com/Tigereye504/chestcavity)
