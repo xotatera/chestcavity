@@ -33,11 +33,14 @@ object CCItemEvents {
         val compat = stack.get(CCDataComponents.ORGAN_COMPATIBILITY.get())
         if (compat != null) {
             tooltip.add(
-                Component.literal("Only Compatible With: ${compat.ownerName}")
+                Component.translatable("text.${ChestCavity.MODID}.tooltip.compatible_with", compat.ownerName)
                     .withStyle(ChatFormatting.RED)
             )
         } else if (organData != null && !organData.pseudoOrgan) {
-            tooltip.add(Component.literal("Safe to Use").withStyle(ChatFormatting.GREEN))
+            tooltip.add(
+                Component.translatable("text.${ChestCavity.MODID}.tooltip.safe_to_use")
+                    .withStyle(ChatFormatting.GREEN)
+            )
         }
     }
 

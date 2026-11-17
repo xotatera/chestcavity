@@ -11,6 +11,7 @@ import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
+import net.tigereye.chestcavity.ChestCavity
 import net.tigereye.chestcavity.chestcavities.ChestCavityEntity
 import net.tigereye.chestcavity.registration.CCOrganScores
 import net.tigereye.chestcavity.ui.ChestCavityMenu
@@ -57,20 +58,28 @@ class ChestOpener(properties: Properties) : Item(properties) {
         val playerCce = ChestCavityEntity.of(player)
         playerCce?.chestCavityInstance?.ccBeingOpened = cc
 
-        val name = runCatching { "${target.displayName?.string}'s " }.getOrDefault("")
+        val name = runCatching { target.displayName }.getOrNull()
         player.openMenu(SimpleMenuProvider(
             { id, playerInv, _ -> ChestCavityMenu(id, playerInv, inv) },
-            Component.literal("${name}Chest Cavity")
+            if (name != null) {
+                Component.translatable("container.${ChestCavity.MODID}.chest_cavity.owner", name)
+            } else {
+                Component.translatable("container.${ChestCavity.MODID}.chest_cavity")
+            }
         ))
         return true
     }
 
     private fun showFailureMessage(player: Player, target: LivingEntity) {
         if (!target.getItemBySlot(EquipmentSlot.CHEST).isEmpty) {
-            player.displayClientMessage(Component.literal("Target's chest is obstructed"), true)
+            player.displayClientMessage(
+                Component.translatable("message.${ChestCavity.MODID}.chest_opener.obstructed"), true
+            )
             player.playSound(SoundEvents.CHAIN_HIT, 0.75f, 1f)
         } else {
-            player.displayClientMessage(Component.literal("Target is too healthy to open"), true)
+            player.displayClientMessage(
+                Component.translatable("message.${ChestCavity.MODID}.chest_opener.too_healthy"), true
+            )
             player.playSound(SoundEvents.ARMOR_EQUIP_TURTLE.value(), 0.75f, 1f)
         }
     }

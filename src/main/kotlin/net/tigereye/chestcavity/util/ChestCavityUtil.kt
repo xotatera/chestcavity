@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.util
 
+import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.damagesource.DamageSource
 import net.minecraft.world.effect.MobEffectInstance
@@ -314,9 +315,19 @@ object ChestCavityUtil {
 
     // --- Debug ---
 
-    fun outputOrganScores(cc: ChestCavityInstance, output: (String) -> Unit) {
-        val name = runCatching { cc.owner.displayName?.string }.getOrDefault("Unknown")
-        output("[Chest Cavity] Displaying ${name}'s organ scores:")
-        cc.organScores.forEach { (key, value) -> output("${key.path}: $value") }
+    fun outputOrganScores(cc: ChestCavityInstance, output: (Component) -> Unit) {
+        // Names are entity display names, not translatable text; only the surrounding wording is.
+        val owner = runCatching { cc.owner.displayName }.getOrNull()
+            ?: Component.translatable("message.${ChestCavity.MODID}.organ_scores.unknown_owner")
+        output(Component.translatable("message.${ChestCavity.MODID}.organ_scores.header", owner))
+        cc.organScores.forEach { (key, value) ->
+            // Score names fall back to the bare registry path, so an unknown (data pack or addon)
+            // score prints exactly what it printed before translations existed.
+            val scoreName = Component.translatableWithFallback(
+                "message.${ChestCavity.MODID}.organ_scores.name.${key.path}", key.path
+            )
+            // Passing the number as a preformatted string keeps the printed value byte-identical.
+            output(Component.translatable("message.${ChestCavity.MODID}.organ_scores.line", scoreName, value.toString()))
+        }
     }
 }
