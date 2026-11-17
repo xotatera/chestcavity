@@ -7,6 +7,7 @@ import net.minecraft.world.entity.monster.Creeper
 import net.minecraft.world.entity.player.Player
 import net.tigereye.chestcavity.CCConfig
 import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstance
+import net.tigereye.chestcavity.registration.CCDamageTypes
 import net.tigereye.chestcavity.registration.CCOrganScores
 import net.tigereye.chestcavity.registration.CCStatusEffects
 import net.tigereye.chestcavity.util.ChestCavityUtil
@@ -38,7 +39,7 @@ object OrganTickListeners {
         if (entity.hasEffect(CCStatusEffects.ORGAN_REJECTION)) return
         entity.addEffect(MobEffectInstance(
             CCStatusEffects.ORGAN_REJECTION,
-            (CCConfig.ORGAN_REJECTION_RATE.get() / incompatibility).toInt(),
+            (CCConfig.ORGAN_REJECTION_RATE.get() / incompatibility).toInt().coerceAtLeast(1),
             0, false, true, true
         ))
     }
@@ -55,14 +56,16 @@ object OrganTickListeners {
 
     private fun tickHealth(entity: LivingEntity, cc: ChestCavityInstance) {
         val defaultHealth = cc.type.getDefaultOrganScore(CCOrganScores.HEALTH)
-        if (defaultHealth == 0f) return
-        if (cc.organScore(CCOrganScores.HEALTH) > 0) {
+        if (defaultHealth == 0f || cc.organScore(CCOrganScores.HEALTH) > 0f) {
             cc.heartBleedTimer = 0
             return
         }
         if (entity.level().gameTime % CCConfig.HEARTBLEED_RATE.get() != 0L) return
         cc.heartBleedTimer++
-        entity.hurt(entity.damageSources().starve(), min(cc.heartBleedTimer.toFloat(), cc.type.heartBleedCap))
+        entity.hurt(
+            entity.damageSources().source(CCDamageTypes.HEARTBLEED),
+            min(cc.heartBleedTimer.toFloat(), cc.type.heartBleedCap)
+        )
     }
 
     private fun tickFiltration(entity: LivingEntity, cc: ChestCavityInstance) {
@@ -92,9 +95,18 @@ object OrganTickListeners {
         if (photosynthesis <= 0) return
         cc.photosynthesisProgress += (photosynthesis * entity.level().getMaxLocalRawBrightness(entity.blockPosition())).toInt()
         val threshold = CCConfig.PHOTOSYNTHESIS_FREQUENCY.get() * 8 * 15
-        if (cc.photosynthesisProgress < threshold) return
+        if (cc.photosynthesisProgress <= threshold) return
         cc.photosynthesisProgress = 0
-        if (entity is Player) entity.foodData.eat(1, 0.5f) else entity.heal(1f)
+        if (entity is Player) {
+            val food = entity.foodData
+            when {
+                food.needsFood() -> food.eat(1, 0f)
+                food.saturationLevel < food.foodLevel -> food.eat(1, 0.5f)
+                else -> entity.heal(1f)
+            }
+        } else {
+            entity.heal(1f)
+        }
     }
 
     private fun tickHydroallergenic(entity: LivingEntity, cc: ChestCavityInstance) {
@@ -124,19 +136,24 @@ object OrganTickListeners {
         if (entity.level().isClientSide) return
         val crystalsynthesis = cc.organScore(CCOrganScores.CRYSTALSYNTHESIS)
 
-        // If connected crystal was destroyed, deal damage
+        // Keep the existing beam attached, or explicitly clear it if this organ is gone.
         val crystal = cc.connectedCrystal
         if (crystal != null) {
             if (crystal.isRemoved) {
                 entity.hurt(entity.damageSources().starve(), crystalsynthesis * 2)
                 cc.connectedCrystal = null
-            } else if (crystalsynthesis == 0f) {
+            } else if (crystalsynthesis != 0f) {
+                crystal.setBeamTarget(entity.blockPosition().below(2))
+            } else {
+                crystal.setBeamTarget(null)
                 cc.connectedCrystal = null
             }
         }
 
-        if (crystalsynthesis <= 0) return
-        if (entity.level().gameTime % CCConfig.CRYSTALSYNTHESIS_FREQUENCY.get() != 0L) return
+        if (crystalsynthesis == 0f || entity is net.minecraft.world.entity.boss.enderdragon.EnderDragon) return
+        val gameTime = entity.level().gameTime
+        val frequency = CCConfig.CRYSTALSYNTHESIS_FREQUENCY.get().toLong()
+        if (gameTime % frequency != 0L) return
 
         // Find nearest end crystal
         val range = CCConfig.CRYSTALSYNTHESIS_RANGE.get().toDouble()
@@ -158,7 +175,14 @@ object OrganTickListeners {
         if (entity is net.minecraft.world.entity.player.Player) {
             val food = entity.foodData
             when {
-                food.needsFood() -> food.eat(1, 0f)
+                food.needsFood() -> {
+                    val hungerCycle = frequency * 5L
+                    if (crystalsynthesis >= 5f ||
+                        (gameTime % hungerCycle).toFloat() < frequency.toFloat() * crystalsynthesis
+                    ) {
+                        food.eat(1, 0f)
+                    }
+                }
                 food.saturationLevel < food.foodLevel -> food.eat(1, crystalsynthesis / 10f)
                 else -> entity.heal(crystalsynthesis / 5f)
             }

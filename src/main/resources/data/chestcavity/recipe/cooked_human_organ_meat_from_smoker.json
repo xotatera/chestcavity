@@ -1,6 +1,8 @@
 {
   "type": "minecraft:smoking",
-  "ingredient": "chestcavity:raw_human_organ_meat",
+  "ingredient": {
+    "item": "chestcavity:raw_human_organ_meat"
+  },
   "result": {
     "id": "chestcavity:cooked_human_organ_meat",
     "count": 1

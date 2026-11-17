@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.listeners
 
 import kotlin.math.roundToInt
 import net.minecraft.core.BlockPos
+import net.minecraft.nbt.CompoundTag
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.world.effect.MobEffectInstance
@@ -41,7 +42,7 @@ object OrganActivationListeners {
     }
 
     private fun activateCreepy(entity: LivingEntity, cc: ChestCavityInstance) {
-        if (cc.organScore(CCOrganScores.CREEPY).roundToInt() < 1) return
+        if (cc.organScore(CCOrganScores.CREEPY) < 1f) return
         if (entity.hasEffect(CCStatusEffects.EXPLOSION_COOLDOWN)) return
         val yield = cc.organScore(CCOrganScores.EXPLOSIVE)
         ChestCavityUtil.destroyOrgansWithKey(cc, CCOrganScores.EXPLOSIVE)
@@ -64,15 +65,17 @@ object OrganActivationListeners {
     }
 
     private fun activateDragonBombs(entity: LivingEntity, cc: ChestCavityInstance) {
-        if (cc.organScore(CCOrganScores.DRAGON_BOMBS).roundToInt() < 1) return
+        val dragonBombs = cc.organScore(CCOrganScores.DRAGON_BOMBS)
+        if (dragonBombs < 1f) return
         if (entity.hasEffect(CCStatusEffects.DRAGON_BOMB_COOLDOWN)) return
-        OrganUtil.queueDragonBombs(entity, cc, cc.organScore(CCOrganScores.DRAGON_BOMBS).roundToInt())
+        OrganUtil.queueDragonBombs(entity, cc, dragonBombs.toInt())
     }
 
     private fun activateForcefulSpit(entity: LivingEntity, cc: ChestCavityInstance) {
-        if (cc.organScore(CCOrganScores.FORCEFUL_SPIT).roundToInt() < 1) return
+        val forcefulSpit = cc.organScore(CCOrganScores.FORCEFUL_SPIT)
+        if (forcefulSpit < 1f) return
         if (entity.hasEffect(CCStatusEffects.FORCEFUL_SPIT_COOLDOWN)) return
-        OrganUtil.queueForcefulSpit(entity, cc, cc.organScore(CCOrganScores.FORCEFUL_SPIT).roundToInt())
+        OrganUtil.queueForcefulSpit(entity, cc, forcefulSpit.toInt())
     }
 
     private fun activateFurnacePowered(entity: LivingEntity, cc: ChestCavityInstance) {
@@ -92,14 +95,48 @@ object OrganActivationListeners {
         }
         val fuelValue = if (fuelMain > 0) fuelMain else fuelOff
 
-        val currentAmplifier = entity.getEffect(CCStatusEffects.FURNACE_POWER)?.amplifier ?: -1
-        if (currentAmplifier >= furnacePowered - 1) return
+        val current = entity.getEffect(CCStatusEffects.FURNACE_POWER)
+        if (current != null && current.amplifier >= furnacePowered - 1) return
+
+        // Every fuel portion keeps its own remaining duration; when one expires the
+        // effect drops a level. Rebuild the whole hidden-effect chain from the old
+        // instance like the original instead of replacing it with only the new fuel
+        // time (L-08). Shortest duration sits on top with the highest amplifier.
+        val newEffect: MobEffectInstance
+        if (current != null) {
+            val durations = mutableListOf(fuelValue)
+            durations.addAll(collectFurnaceDurations(current))
+            durations.sortDescending()
+            var chain: MobEffectInstance? = null
+            var amplifier = 0
+            for (duration in durations) {
+                chain = MobEffectInstance(
+                    CCStatusEffects.FURNACE_POWER, duration, amplifier,
+                    false, false, true, chain
+                )
+                amplifier++
+            }
+            newEffect = chain!!
+        } else {
+            newEffect = MobEffectInstance(
+                CCStatusEffects.FURNACE_POWER, fuelValue, 0, false, false, true
+            )
+        }
 
         entity.removeEffect(CCStatusEffects.FURNACE_POWER)
-        entity.addEffect(MobEffectInstance(
-            CCStatusEffects.FURNACE_POWER, fuelValue, currentAmplifier + 1, false, false, true
-        ))
+        entity.addEffect(newEffect)
         stack.shrink(1)
+    }
+
+    private fun collectFurnaceDurations(effect: MobEffectInstance): List<Int> {
+        val tag = effect.save() as? CompoundTag ?: return emptyList()
+        val durations = mutableListOf<Int>()
+        var node: CompoundTag? = tag
+        while (node != null) {
+            durations.add(node.getInt("duration"))
+            node = node.getCompound("hidden_effect").takeIf { !it.isEmpty }
+        }
+        return durations
     }
 
     private fun activateIronRepair(entity: LivingEntity, cc: ChestCavityInstance) {
@@ -126,9 +163,10 @@ object OrganActivationListeners {
     }
 
     private fun activateGhastly(entity: LivingEntity, cc: ChestCavityInstance) {
-        if (cc.organScore(CCOrganScores.GHASTLY).roundToInt() < 1) return
+        val ghastly = cc.organScore(CCOrganScores.GHASTLY)
+        if (ghastly < 1f) return
         if (entity.hasEffect(CCStatusEffects.GHASTLY_COOLDOWN)) return
-        OrganUtil.queueGhastlyFireballs(entity, cc, cc.organScore(CCOrganScores.GHASTLY).roundToInt())
+        OrganUtil.queueGhastlyFireballs(entity, cc, ghastly.toInt())
     }
 
     private fun activateGrazing(entity: LivingEntity, cc: ChestCavityInstance) {
@@ -147,9 +185,10 @@ object OrganActivationListeners {
         level.setBlock(blockPos, replacement, 2)
 
         val baseDuration = CCConfig.RUMINATION_TIME.get() * CCConfig.RUMINATION_GRASS_PER_SQUARE.get()
-        val maxDuration = baseDuration * CCConfig.RUMINATION_SQUARES_PER_STOMACH.get() * grazing.toInt()
-        val currentDuration = entity.getEffect(CCStatusEffects.RUMINATING)?.duration ?: 0
-        val newDuration = (currentDuration + baseDuration).coerceAtMost(maxDuration)
+        val maxDuration = (baseDuration * CCConfig.RUMINATION_SQUARES_PER_STOMACH.get() * grazing).toInt()
+        // Original: only an ongoing rumination is capped; a fresh one always starts at the base duration.
+        val ruminating = entity.getEffect(CCStatusEffects.RUMINATING)
+        val newDuration = if (ruminating != null) (ruminating.duration + baseDuration).coerceAtMost(maxDuration) else baseDuration
 
         entity.addEffect(MobEffectInstance(
             CCStatusEffects.RUMINATING, newDuration, 0, false, false, true
@@ -157,15 +196,17 @@ object OrganActivationListeners {
     }
 
     private fun activatePyromancy(entity: LivingEntity, cc: ChestCavityInstance) {
-        if (cc.organScore(CCOrganScores.PYROMANCY).roundToInt() < 1) return
+        val pyromancy = cc.organScore(CCOrganScores.PYROMANCY)
+        if (pyromancy < 1f) return
         if (entity.hasEffect(CCStatusEffects.PYROMANCY_COOLDOWN)) return
-        OrganUtil.queuePyromancyFireballs(entity, cc, cc.organScore(CCOrganScores.PYROMANCY).roundToInt())
+        OrganUtil.queuePyromancyFireballs(entity, cc, pyromancy.toInt())
     }
 
     private fun activateShulkerBullets(entity: LivingEntity, cc: ChestCavityInstance) {
-        if (cc.organScore(CCOrganScores.SHULKER_BULLETS).roundToInt() < 1) return
+        val shulkerBullets = cc.organScore(CCOrganScores.SHULKER_BULLETS)
+        if (shulkerBullets < 1f) return
         if (entity.hasEffect(CCStatusEffects.SHULKER_BULLET_COOLDOWN)) return
-        OrganUtil.queueShulkerBullets(entity, cc, cc.organScore(CCOrganScores.SHULKER_BULLETS).roundToInt())
+        OrganUtil.queueShulkerBullets(entity, cc, shulkerBullets.toInt())
     }
 
     private fun activateSilk(entity: LivingEntity, cc: ChestCavityInstance) {

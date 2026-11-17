@@ -5,8 +5,12 @@
     "IS"
   ],
   "key": {
-    "I": "#minecraft:stone_tool_materials",
-    "S": "minecraft:stick"
+    "I": {
+      "tag": "minecraft:stone_tool_materials"
+    },
+    "S": {
+      "item": "minecraft:stick"
+    }
   },
   "result": {
     "id": "chestcavity:stone_cleaver",

@@ -1,6 +1,8 @@
 {
   "type": "minecraft:smoking",
-  "ingredient": "chestcavity:raw_mini_sausage",
+  "ingredient": {
+    "item": "chestcavity:raw_mini_sausage"
+  },
   "result": {
     "id": "chestcavity:mini_sausage",
     "count": 1

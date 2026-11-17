@@ -31,6 +31,10 @@ object CCServerEvents {
             val cc = cce.chestCavityInstance
             cc.type = ChestCavityInstanceFactory.resolveType(player.type)
             ChestCavityUtil.evaluateChestCavity(cc)
+            // Login: the client has just been created, so send the full state unconditionally. The
+            // score map was already evaluated while the player data was loaded, which would make
+            // organUpdate's "unchanged" early-exit swallow the packet (L-04).
+            ChestCavityUtil.sendStateToClient(cc)
         }
     }
 }

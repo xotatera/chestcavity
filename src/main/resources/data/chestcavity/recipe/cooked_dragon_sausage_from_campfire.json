@@ -1,6 +1,8 @@
 {
   "type": "minecraft:campfire_cooking",
-  "ingredient": "chestcavity:raw_dragon_sausage",
+  "ingredient": {
+    "item": "chestcavity:raw_dragon_sausage"
+  },
   "result": {
     "id": "chestcavity:dragon_sausage",
     "count": 1

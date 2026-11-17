@@ -1,6 +1,7 @@
 package net.tigereye.chestcavity.registration
 
 import net.minecraft.world.food.FoodProperties
+import net.minecraft.world.food.Foods
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.SwordItem
 import net.minecraft.world.item.Tiers
@@ -18,12 +19,12 @@ object CCItems {
     val CHEST_OPENER: DeferredItem<Item> = ITEMS.register("chest_opener") { ->
         ChestOpener(Item.Properties().stacksTo(1))
     }
-    val WOODEN_CLEAVER = cleaver("wooden_cleaver", Tiers.WOOD)
-    val STONE_CLEAVER = cleaver("stone_cleaver", Tiers.STONE)
-    val GOLD_CLEAVER = cleaver("gold_cleaver", Tiers.GOLD)
-    val IRON_CLEAVER = cleaver("iron_cleaver", Tiers.IRON)
-    val DIAMOND_CLEAVER = cleaver("diamond_cleaver", Tiers.DIAMOND)
-    val NETHERITE_CLEAVER = cleaver("netherite_cleaver", Tiers.NETHERITE) { fireResistant() }
+    val WOODEN_CLEAVER = cleaver("wooden_cleaver", Tiers.WOOD, 6, -3.2f)
+    val STONE_CLEAVER = cleaver("stone_cleaver", Tiers.STONE, 7, -3.2f)
+    val GOLD_CLEAVER = cleaver("gold_cleaver", Tiers.GOLD, 6, -3.0f)
+    val IRON_CLEAVER = cleaver("iron_cleaver", Tiers.IRON, 6, -3.1f)
+    val DIAMOND_CLEAVER = cleaver("diamond_cleaver", Tiers.DIAMOND, 5, -3.0f)
+    val NETHERITE_CLEAVER = cleaver("netherite_cleaver", Tiers.NETHERITE, 5, -3.0f) { fireResistant() }
 
     // --- Human organs ---
     val HUMAN_APPENDIX = organ("appendix", CCFoodComponents.RAW_HUMAN_ORGAN_MEAT)
@@ -39,17 +40,17 @@ object CCItems {
     val HUMAN_STOMACH = organ("stomach", CCFoodComponents.RAW_HUMAN_ORGAN_MEAT)
 
     // --- Rotten organs ---
-    val ROTTEN_APPENDIX = organ("rotten_appendix", CCFoodComponents.ROTTEN_MUSCLE)
-    val ROTTEN_HEART = organ("rotten_heart", CCFoodComponents.ROTTEN_MUSCLE)
-    val ROTTEN_INTESTINE = organ("rotten_intestine", CCFoodComponents.ROTTEN_MUSCLE)
-    val ROTTEN_KIDNEY = organ("rotten_kidney", CCFoodComponents.ROTTEN_MUSCLE)
-    val ROTTEN_LIVER = organ("rotten_liver", CCFoodComponents.ROTTEN_MUSCLE)
-    val ROTTEN_LUNG = organ("rotten_lung", CCFoodComponents.ROTTEN_MUSCLE)
+    val ROTTEN_APPENDIX = organ("rotten_appendix", Foods.ROTTEN_FLESH)
+    val ROTTEN_HEART = organ("rotten_heart", Foods.ROTTEN_FLESH)
+    val ROTTEN_INTESTINE = organ("rotten_intestine", Foods.ROTTEN_FLESH)
+    val ROTTEN_KIDNEY = organ("rotten_kidney", Foods.ROTTEN_FLESH)
+    val ROTTEN_LIVER = organ("rotten_liver", Foods.ROTTEN_FLESH)
+    val ROTTEN_LUNG = organ("rotten_lung", Foods.ROTTEN_FLESH)
     val ROTTEN_MUSCLE = item("rotten_muscle") { stacksTo(16).food(CCFoodComponents.ROTTEN_MUSCLE) }
     val ROTTEN_RIB = item("rotten_rib") { stacksTo(4) }
     val ROTTEN_SPINE = item("rotten_spine") { stacksTo(1) }
-    val ROTTEN_SPLEEN = organ("rotten_spleen", CCFoodComponents.ROTTEN_MUSCLE)
-    val ROTTEN_STOMACH = organ("rotten_stomach", CCFoodComponents.ROTTEN_MUSCLE)
+    val ROTTEN_SPLEEN = organ("rotten_spleen", Foods.ROTTEN_FLESH)
+    val ROTTEN_STOMACH = organ("rotten_stomach", Foods.ROTTEN_FLESH)
     val WITHERED_RIB = item("withered_rib") { stacksTo(4) }
     val WITHERED_SPINE = item("withered_spine") { stacksTo(1) }
     val WRITHING_SOULSAND = item("writhing_soulsand") { stacksTo(16) }
@@ -251,13 +252,15 @@ object CCItems {
     private fun cleaver(
         name: String,
         tier: Tiers,
+        attackDamage: Int,
+        attackSpeed: Float,
         extraProps: Item.Properties.() -> Item.Properties = { this }
     ): DeferredItem<SwordItem> =
         ITEMS.register(name) { ->
             SwordItem(
                 tier,
                 Item.Properties()
-                    .attributes(SwordItem.createAttributes(tier, 3, -2.4f))
+                    .attributes(SwordItem.createAttributes(tier, attackDamage, attackSpeed))
                     .extraProps()
             )
         }

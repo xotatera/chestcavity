@@ -6,7 +6,10 @@
   "mixins": [
     "MixinLivingEntity",
     "MixinFoodData",
-    "MixinPlayer"
+    "MixinPlayer",
+    "MixinEntity",
+    "MixinCow",
+    "MixinSheep"
   ],
   "injectors": {
     "defaultRequire": 1

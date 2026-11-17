@@ -13,6 +13,7 @@ import net.minecraft.world.entity.ai.targeting.TargetingConditions
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.entity.projectile.*
 import net.minecraft.world.item.Items
+import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.GameRules
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
@@ -164,6 +165,32 @@ object OrganUtil {
     }
 
     // --- Silk ---
+
+    fun shearSilk(entity: LivingEntity) {
+        if (entity.level().isClientSide) return
+        val cc = ChestCavityEntity.of(entity)?.chestCavityInstance ?: return
+        if (!cc.opened) return
+        val silk = cc.organScore(CCOrganScores.SILK)
+        if (silk <= 0f) return
+        if (silk >= 2f) {
+            entity.spawnAtLocation(ItemStack(Items.COBWEB, silk.toInt() / 2))
+        }
+        if (silk % 2f >= 1f) {
+            entity.spawnAtLocation(Items.STRING)
+        }
+    }
+
+    fun milkSilk(entity: LivingEntity) {
+        if (entity.level().isClientSide || !entity.isAlive) return
+        if (entity.hasEffect(CCStatusEffects.SILK_COOLDOWN)) return
+        val cc = ChestCavityEntity.of(entity)?.chestCavityInstance ?: return
+        if (!cc.opened) return
+        val silk = cc.organScore(CCOrganScores.SILK)
+        if (silk <= 0f || !spinWeb(entity, cc, silk)) return
+        entity.addEffect(MobEffectInstance(
+            CCStatusEffects.SILK_COOLDOWN, CCConfig.SILK_COOLDOWN.get(), 0, false, false, true
+        ))
+    }
 
     fun spinWeb(entity: LivingEntity, cc: ChestCavityInstance, silkScore: Float): Boolean {
         val player = entity as? Player

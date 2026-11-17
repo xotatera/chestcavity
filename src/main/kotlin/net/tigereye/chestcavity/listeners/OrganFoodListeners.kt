@@ -1,5 +1,7 @@
 package net.tigereye.chestcavity.listeners
 
+import net.minecraft.tags.ItemTags
+import net.neoforged.neoforge.common.Tags
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.food.FoodProperties
 import net.minecraft.world.item.ItemStack
@@ -47,7 +49,12 @@ object OrganFoodListeners {
     }
 
     private fun applyHerbivorousCarnivorous(stack: ItemStack, cc: ChestCavityInstance, efs: EffectiveFoodScores) {
-        val isMeat = stack.`is`(CCTags.CARNIVORE_FOOD)
+        // The original asked FoodComponent#isMeat, which every mod's meat food also answered. 1.21 has
+        // no such flag, so the vanilla and common meat tags stand in for it.
+        val isMeat = stack.`is`(ItemTags.MEAT) ||
+            stack.`is`(Tags.Items.FOODS_RAW_MEAT) ||
+            stack.`is`(Tags.Items.FOODS_COOKED_MEAT) ||
+            stack.`is`(CCTags.CARNIVORE_FOOD)
         if (isMeat) {
             efs.digestion += cc.organScore(CCOrganScores.CARNIVOROUS_DIGESTION)
             efs.nutrition += cc.organScore(CCOrganScores.CARNIVOROUS_NUTRITION)

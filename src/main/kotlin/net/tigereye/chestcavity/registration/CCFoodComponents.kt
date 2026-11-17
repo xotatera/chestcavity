@@ -72,16 +72,16 @@ object CCFoodComponents {
         effect({ MobEffectInstance(MobEffects.LEVITATION, 2, 3) }, 1f)
     }
 
-    // Human (prion risk) - note: actual risk comes from config, hardcoded 0.01f for now
-    val HUMAN_MUSCLE = food(2, 0.4f) { fast(); prionRisk(0.01f) }
-    val RAW_MAN_MEAT = food(3, 0.4f) { prionRisk(0.01f) }
-    val COOKED_MAN_MEAT = food(4, 0.8f) { prionRisk(0.01f, amplifier = 0) }
-    val RAW_HUMAN_ORGAN_MEAT = food(3, 0.6f) { fast(); prionRisk(0.01f) }
-    val COOKED_HUMAN_ORGAN_MEAT = food(4, 1.2f) { fast(); prionRisk(0.01f, amplifier = 0) }
-    val RAW_HUMAN_SAUSAGE = food(5, 0.4f) { prionRisk(0.01f) }
-    val COOKED_HUMAN_SAUSAGE = food(9, 0.8f) { prionRisk(0.01f, amplifier = 0) }
-    val RAW_RICH_HUMAN_SAUSAGE = food(5, 0.6f) { prionRisk(0.01f) }
-    val COOKED_RICH_HUMAN_SAUSAGE = food(9, 1.2f) { prionRisk(0.01f, amplifier = 0) }
+    // Prion risk is applied after consumption using the loaded COMMON config in CCEvents.
+    val HUMAN_MUSCLE = food(2, 0.4f) { fast() }
+    val RAW_MAN_MEAT = food(3, 0.4f)
+    val COOKED_MAN_MEAT = food(4, 0.8f)
+    val RAW_HUMAN_ORGAN_MEAT = food(3, 0.6f) { fast() }
+    val COOKED_HUMAN_ORGAN_MEAT = food(4, 1.2f) { fast() }
+    val RAW_HUMAN_SAUSAGE = food(5, 0.4f)
+    val COOKED_HUMAN_SAUSAGE = food(9, 0.8f)
+    val RAW_RICH_HUMAN_SAUSAGE = food(5, 0.6f)
+    val COOKED_RICH_HUMAN_SAUSAGE = food(9, 1.2f)
 
     // Utility foods
     val CUD = food(1, 0.1f)
@@ -110,8 +110,4 @@ object CCFoodComponents {
         .effect({ MobEffectInstance(MobEffects.DAMAGE_BOOST, duration, amplifier) }, 1f)
         .effect({ MobEffectInstance(MobEffects.DIG_SPEED, duration, amplifier) }, 1f)
 
-    private fun FoodProperties.Builder.prionRisk(chance: Float, amplifier: Int = 1): FoodProperties.Builder = this
-        .effect({ MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 24000, amplifier) }, chance)
-        .effect({ MobEffectInstance(MobEffects.DIG_SLOWDOWN, 24000, amplifier) }, chance)
-        .effect({ MobEffectInstance(MobEffects.WEAKNESS, 24000, amplifier) }, chance)
 }

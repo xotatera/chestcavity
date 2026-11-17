@@ -1,6 +1,8 @@
 {
   "type": "minecraft:smoking",
-  "ingredient": "#chestcavity:burnable_meat",
+  "ingredient": {
+    "tag": "chestcavity:burnable_meat"
+  },
   "result": {
     "id": "chestcavity:burnt_meat_chunk",
     "count": 1

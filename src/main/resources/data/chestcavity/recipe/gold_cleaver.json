@@ -5,8 +5,12 @@
     "IS"
   ],
   "key": {
-    "I": "minecraft:gold_ingot",
-    "S": "minecraft:stick"
+    "I": {
+      "item": "minecraft:gold_ingot"
+    },
+    "S": {
+      "item": "minecraft:stick"
+    }
   },
   "result": {
     "id": "chestcavity:gold_cleaver",

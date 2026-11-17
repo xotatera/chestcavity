@@ -5,9 +5,15 @@
     "P "
   ],
   "key": {
-    "I": "minecraft:iron_ingot",
-    "P": "minecraft:stick",
-    "L": "minecraft:lever"
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "P": {
+      "item": "minecraft:stick"
+    },
+    "L": {
+      "item": "minecraft:lever"
+    }
   },
   "result": {
     "id": "chestcavity:chest_opener",

@@ -6,10 +6,12 @@ object CCConfig {
     private val BUILDER = ModConfigSpec.Builder()
 
     // Core
-    val ORGAN_BUNDLE_LOOTING_BOOST = BUILDER.comment("Looting boost per level for organ drops")
-        .defineInRange("core.organ_bundle_looting_boost", 0.01, 0.0, 1.0)
-    val UNIVERSAL_DONOR_RATE = BUILDER.comment("Chance of organs being universal donor")
-        .defineInRange("core.universal_donor_rate", 0.025, 0.0, 1.0)
+    // Defaults match the original mod (CCConfig.java: .04f / .1f). The port had quartered both, so a
+    // cleaver kill rolled the organ bundle at 12.5% instead of 50%.
+    val ORGAN_BUNDLE_LOOTING_BOOST = BUILDER.comment("Added organ bundle chance per looting level (a cleaver counts as looting 10 + 10x looting)")
+        .defineInRange("core.organ_bundle_looting_boost", 0.04, 0.0, 1.0)
+    val UNIVERSAL_DONOR_RATE = BUILDER.comment("Base chance of a random organ bundle drop, and of a mob carrying universal donor organs")
+        .defineInRange("core.universal_donor_rate", 0.1, 0.0, 1.0)
     val ORGAN_REJECTION_DAMAGE = BUILDER.comment("Damage dealt by organ rejection")
         .defineInRange("core.organ_rejection_damage", 2, 0, 100)
     val ORGAN_REJECTION_RATE = BUILDER.comment("Base ticks between organ rejection checks")

@@ -6,6 +6,7 @@ import net.minecraft.world.effect.MobEffects
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.entity.projectile.LlamaSpit
+import net.minecraft.world.entity.projectile.Projectile
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.tigereye.chestcavity.CCConfig
@@ -23,10 +24,11 @@ class VenomGland(properties: Properties) : Item(properties), OrganOnHitListener 
         organ: ItemStack,
         damage: Float
     ): Float {
-        if (attacker.getItemInHand(attacker.usedItemHand).isEmpty) return damage
-
-        val projectile = source.directEntity
+        val projectile = source.directEntity as? Projectile
         if (projectile != null && projectile !is LlamaSpit) return damage
+
+        // The original only triggers when the attacker's active hand is empty.
+        if (!attacker.getItemInHand(attacker.usedItemHand).isEmpty) return damage
 
         val cooldownDuration = CCConfig.VENOM_COOLDOWN.get()
         val existing = attacker.getEffect(CCStatusEffects.VENOM_COOLDOWN)

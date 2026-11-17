@@ -1,6 +1,8 @@
 {
   "type": "minecraft:smelting",
-  "ingredient": "chestcavity:iron_scrap",
+  "ingredient": {
+    "item": "chestcavity:iron_scrap"
+  },
   "result": {
     "id": "minecraft:iron_nugget",
     "count": 1
