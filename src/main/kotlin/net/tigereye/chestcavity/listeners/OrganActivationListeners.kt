@@ -2,6 +2,7 @@ package net.tigereye.chestcavity.listeners
 
 import kotlin.math.roundToInt
 import net.minecraft.core.BlockPos
+import net.minecraft.nbt.CompoundTag
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.world.effect.MobEffectInstance
@@ -92,14 +93,48 @@ object OrganActivationListeners {
         }
         val fuelValue = if (fuelMain > 0) fuelMain else fuelOff
 
-        val currentAmplifier = entity.getEffect(CCStatusEffects.FURNACE_POWER)?.amplifier ?: -1
-        if (currentAmplifier >= furnacePowered - 1) return
+        val current = entity.getEffect(CCStatusEffects.FURNACE_POWER)
+        if (current != null && current.amplifier >= furnacePowered - 1) return
+
+        // Every fuel portion keeps its own remaining duration; when one expires the
+        // effect drops a level. Rebuild the whole hidden-effect chain from the old
+        // instance like the original instead of replacing it with only the new fuel
+        // time (L-08). Shortest duration sits on top with the highest amplifier.
+        val newEffect: MobEffectInstance
+        if (current != null) {
+            val durations = mutableListOf(fuelValue)
+            durations.addAll(collectFurnaceDurations(current))
+            durations.sortDescending()
+            var chain: MobEffectInstance? = null
+            var amplifier = 0
+            for (duration in durations) {
+                chain = MobEffectInstance(
+                    CCStatusEffects.FURNACE_POWER, duration, amplifier,
+                    false, false, true, chain
+                )
+                amplifier++
+            }
+            newEffect = chain!!
+        } else {
+            newEffect = MobEffectInstance(
+                CCStatusEffects.FURNACE_POWER, fuelValue, 0, false, false, true
+            )
+        }
 
         entity.removeEffect(CCStatusEffects.FURNACE_POWER)
-        entity.addEffect(MobEffectInstance(
-            CCStatusEffects.FURNACE_POWER, fuelValue, currentAmplifier + 1, false, false, true
-        ))
+        entity.addEffect(newEffect)
         stack.shrink(1)
+    }
+
+    private fun collectFurnaceDurations(effect: MobEffectInstance): List<Int> {
+        val tag = effect.save() as? CompoundTag ?: return emptyList()
+        val durations = mutableListOf<Int>()
+        var node: CompoundTag? = tag
+        while (node != null) {
+            durations.add(node.getInt("duration"))
+            node = node.getCompound("hidden_effect").takeIf { !it.isEmpty }
+        }
+        return durations
     }
 
     private fun activateIronRepair(entity: LivingEntity, cc: ChestCavityInstance) {

@@ -1,6 +1,8 @@
 {
   "type": "minecraft:campfire_cooking",
-  "ingredient": "chestcavity:raw_alien_meat",
+  "ingredient": {
+    "item": "chestcavity:raw_alien_meat"
+  },
   "result": {
     "id": "chestcavity:cooked_alien_meat",
     "count": 1
