@@ -1,6 +1,8 @@
 {
   "type": "minecraft:campfire_cooking",
-  "ingredient": "chestcavity:raw_butchered_meat",
+  "ingredient": {
+    "item": "chestcavity:raw_butchered_meat"
+  },
   "result": {
     "id": "chestcavity:cooked_butchered_meat",
     "count": 1

@@ -1,5 +1,6 @@
 package net.tigereye.chestcavity.util
 
+import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.damagesource.DamageSource
 import net.minecraft.world.effect.MobEffectInstance
@@ -16,6 +17,7 @@ import net.tigereye.chestcavity.listeners.OrganOnHitContext
 import net.tigereye.chestcavity.listeners.OrganOnHitListener
 import net.tigereye.chestcavity.listeners.OrganTickListeners
 import net.tigereye.chestcavity.listeners.OrganUpdateListeners
+import net.tigereye.chestcavity.registration.CCEnchantments
 import net.tigereye.chestcavity.registration.CCItems
 import net.tigereye.chestcavity.registration.CCOrganScores
 import net.tigereye.chestcavity.registration.CCTagOrgans
@@ -125,13 +127,14 @@ object ChestCavityUtil {
 
     // --- Chest cavity lifecycle ---
 
-    fun evaluateChestCavity(cc: ChestCavityInstance) {
+    fun evaluateChestCavity(cc: ChestCavityInstance, sync: Boolean = true) {
         val scores = cc.organScores.toMutableMap()
         if (!cc.opened) {
             scores.clear()
             cc.type.defaultOrganScores.let { scores.putAll(it) }
             cc.organScores = scores
-            organUpdate(cc)
+            cc.initialized = true
+            organUpdate(cc, sync)
             return
         }
 
@@ -165,34 +168,62 @@ object ChestCavityUtil {
         }
 
         cc.organScores = scores
-        organUpdate(cc)
+        cc.initialized = true
+        organUpdate(cc, sync)
     }
 
-    fun organUpdate(cc: ChestCavityInstance) {
-        if (cc.oldOrganScores == cc.organScores) return
-        OrganUpdateListeners.onOrganUpdate(cc.owner, cc)
-        cc.oldOrganScores = cc.organScores.toMap()
-        // Sync to client (only if player has an active connection)
-        val owner = cc.owner
-        if (!owner.level().isClientSide && owner is net.minecraft.server.level.ServerPlayer && owner.connection != null) {
-            val payload = net.tigereye.chestcavity.registration.ChestCavityUpdatePayload(cc.opened, cc.organScores)
-            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(owner, payload)
+    fun organUpdate(cc: ChestCavityInstance, sync: Boolean = true) {
+        val changed = cc.oldOrganScores != cc.organScores
+        if (changed) {
+            OrganUpdateListeners.onOrganUpdate(cc.owner, cc)
+            cc.oldOrganScores = cc.organScores.toMap()
         }
+        if (!changed || !sync) return
+        sendStateToClient(cc)
+    }
+
+    /**
+     * Pushes the full current state (opened + every organ score) to the owning player if they are
+     * a connected server player. Unlike [organUpdate] this ignores whether the score map changed,
+     * which is required after login and after an actual respawn has produced a new client entity (L-04).
+     */
+    fun sendStateToClient(cc: ChestCavityInstance) {
+        val owner = cc.owner
+        if (owner.level().isClientSide) return
+        if (owner !is net.minecraft.server.level.ServerPlayer) return
+        if (owner.connection == null) return
+        val payload = net.tigereye.chestcavity.registration.ChestCavityUpdatePayload(cc.opened, cc.organScores)
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(owner, payload)
+    }
+
+    /**
+     * Resolves the datapack-defined type for this owner and performs the first full evaluation.
+     * This is the single explicit "initialisation finished" point for a fresh instance (L-01).
+     */
+    fun initializeChestCavity(cc: ChestCavityInstance, sync: Boolean = false) {
+        cc.type = net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstanceFactory.resolveType(cc.owner.type)
+        // Before the datapack types are loaded there is nothing to evaluate against; stay
+        // uninitialised so a later tick retries instead of freezing an empty score map forever (L-01).
+        if (net.tigereye.chestcavity.chestcavities.types.ChestCavityTypeManager.types.isEmpty()) return
+        evaluateChestCavity(cc, sync)
     }
 
     fun openChestCavity(cc: ChestCavityInstance): ChestCavityInventory {
         if (cc.opened) return cc.inventory
         cc.inventory.removeListener(cc)
         cc.opened = true
+        // Fills the default inventory, tags it with the body id, then re-evaluates (L-01).
         generateChestCavityIfOpened(cc)
         cc.inventory.addListener(cc)
         return cc.inventory
     }
 
-    fun generateChestCavityIfOpened(cc: ChestCavityInstance) {
+    fun generateChestCavityIfOpened(cc: ChestCavityInstance, sync: Boolean = true) {
         if (!cc.opened) return
         cc.type.fillChestCavityInventory(cc.inventory)
         cc.type.setOrganCompatibility(cc)
+        // Recalculate from the freshly generated inventory so the terminal state is correct (L-01).
+        evaluateChestCavity(cc, sync)
     }
 
     // --- On-hit ---
@@ -217,39 +248,202 @@ object ChestCavityUtil {
 
     // --- Death ---
 
-    fun onDeath(entity: ChestCavityEntity) {
-        val cc = entity.chestCavityInstance
-        cc.type.onDeath(cc)
-        val owner = cc.owner
-        if (owner is net.minecraft.world.entity.player.Player) {
-            if (!CCConfig.KEEP_CHEST_CAVITY.get()) {
-                cc.compatibilityId = java.util.UUID.randomUUID()
-                generateChestCavityIfOpened(cc)
-            }
-            insertWelfareOrgans(cc)
+    /**
+     * Commits the death transaction after the death has been approved by the platform.
+     *
+     * Deliberately not wired to the (cancellable) death event: a later listener may still save the
+     * entity, in which case nothing about the body may change (L-03 / A13). Runs in the drops phase
+     * instead, where [drops] is the platform's own captured drop collection, so every item leaving the
+     * body stays subject to the platform's drop handling and to any listener that cancels or replaces
+     * it (L-03).
+     */
+    fun commitDeath(cc: ChestCavityInstance, drops: MutableCollection<net.minecraft.world.entity.item.ItemEntity>) {
+        if (cc.deathCommitted) return
+        // Remember which drops are shed implants so the later loot listeners (cleaver butchering,
+        // malpractice) treat only real mob loot as loot.
+        val before = drops.toList()
+        try {
+            commitDeathOnce(cc, drops)
+        } finally {
+            cc.deathDrops = drops.filter { drop -> before.none { it === drop } }
         }
     }
 
-    fun insertWelfareOrgans(cc: ChestCavityInstance) {
+    private fun commitDeathOnce(cc: ChestCavityInstance, drops: MutableCollection<net.minecraft.world.entity.item.ItemEntity>) {
+        cc.deathCommitted = true
+
+        // Release transient, world-bound state before anything else (L-07). Done here as well as in
+        // the type hook so a type that overrides onDeath without calling back cannot leak them.
+        cc.releaseTransientState()
+        cc.type.onDeath(cc)
+        cc.projectileCooldown = 0
+        cc.ccBeingOpened = null
+
+        val owner = cc.owner
+        if (owner !is net.minecraft.world.entity.player.Player) {
+            // Mobs: only an opened body has organs to shed; the body itself is removed with the entity.
+            // Welfare stays player-only, exactly like the original (it lives inside the player branch).
+            // O Negative II only means something to a player's next life, so a mob sheds by ownership.
+            if (cc.opened) dropUnboundOrgans(cc, drops, honourEnchantments = false)
+            return
+        }
+
+        if (!CCConfig.KEEP_CHEST_CAVITY.get()) {
+            // Classify by the OLD body id first, then rebuild the body under a new id (A-01 / L-02).
+            if (cc.opened) dropUnboundOrgans(cc, drops)
+            // O Negative II organs stay in their slot across the rebuild (original onDeath).
+            val keptOrgans = HashMap<Int, ItemStack>()
+            if (cc.opened) {
+                for (i in 0 until cc.inventory.containerSize) {
+                    val stack = cc.inventory.getItem(i)
+                    if (CCEnchantments.level(stack, CCEnchantments.O_NEGATIVE) >= 2) keptOrgans[i] = stack.copy()
+                }
+            }
+            val newBodyId = java.util.UUID.randomUUID()
+            cc.compatibilityId = newBodyId
+            if (cc.opened) {
+                // Fills the fresh default inventory against the new body id and re-evaluates. The
+                // listener is detached while the slots are rewritten so a half-filled body is never
+                // evaluated (and never pushed to the dying client).
+                cc.inventory.removeListener(cc)
+                try {
+                    generateChestCavityIfOpened(cc, sync = false)
+                    keptOrgans.forEach { (slot, organ) -> cc.inventory.setItem(slot, organ) }
+                } finally {
+                    cc.inventory.addListener(cc)
+                }
+            }
+            // The body id is decided here and must survive a type implementation that still writes it
+            // back to the account id; regenerate only tags organs with whatever is current (L-02).
+            cc.compatibilityId = newBodyId
+            adoptBodyId(cc, owner.uuid, newBodyId)
+        }
+        // KEEP_CHEST_CAVITY keeps the current body, its inventory and its id untouched (A-09).
+        insertWelfareOrgans(cc, drops)
+        evaluateChestCavity(cc, sync = false)
+    }
+
+    /**
+     * Re-tags every organ that a type just stamped with the account id so it belongs to the body id
+     * that was decided by the death transaction (L-02).
+     *
+     * The body of a player is owned by the body, not by the account: two successive lives of the same
+     * account are different donors, and an organ that carries the account id would be read as
+     * "someone else's organ" (`compatibility == 0`) and shed again on the very next death. This keeps
+     * the decision of [commitDeath] authoritative even when the type implementation still writes the
+     * account id, and is a no-op once the type no longer writes the id at all.
+     */
+    private fun adoptBodyId(cc: ChestCavityInstance, accountId: java.util.UUID, bodyId: java.util.UUID) {
+        if (accountId == bodyId) return
+        val componentType = net.tigereye.chestcavity.registration.CCDataComponents.ORGAN_COMPATIBILITY.get()
+        for (i in 0 until cc.inventory.containerSize) {
+            val stack = cc.inventory.getItem(i)
+            if (stack.isEmpty) continue
+            val compat = stack.get(componentType) ?: continue
+            if (compat.ownerUuid != accountId) continue
+            stack.set(componentType, compat.copy(ownerUuid = bodyId))
+        }
+        evaluateChestCavity(cc, sync = false)
+    }
+
+    /**
+     * Drops every organ that is not bound to this body, judged by the body id that was valid before
+     * the death (A-01). The stacks are routed into the platform drop collection.
+     */
+    fun dropUnboundOrgans(
+        cc: ChestCavityInstance,
+        drops: MutableCollection<net.minecraft.world.entity.item.ItemEntity>,
+        honourEnchantments: Boolean = true,
+    ) {
+        cc.inventory.removeListener(cc)
+        try {
+            for (i in 0 until cc.inventory.containerSize) {
+                val stack = cc.inventory.getItem(i)
+                if (stack.isEmpty) continue
+                val level = if (honourEnchantments) getCompatibilityLevel(cc, stack) else ownershipLevel(cc, stack)
+                if (level < 2) {
+                    collectDrop(cc, cc.inventory.removeItemNoUpdate(i), drops)
+                }
+            }
+        } finally {
+            cc.inventory.addListener(cc)
+        }
+        // The scores must reflect the shed organs before anything (welfare) is decided on them (A-15).
+        evaluateChestCavity(cc, sync = false)
+    }
+
+    fun insertWelfareOrgans(
+        cc: ChestCavityInstance,
+        drops: MutableCollection<net.minecraft.world.entity.item.ItemEntity>? = null
+    ) {
         if (cc.organScore(CCOrganScores.HEALTH) <= 0) {
-            forcefullyAddStack(cc, ItemStack(CCItems.ROTTEN_HEART.get()), 4)
+            forcefullyAddStack(cc, ItemStack(CCItems.ROTTEN_HEART.get()), 4, drops)
         }
         if (cc.organScore(CCOrganScores.BREATH_RECOVERY) <= 0) {
-            forcefullyAddStack(cc, ItemStack(CCItems.ROTTEN_LUNG.get()), 3)
+            forcefullyAddStack(cc, ItemStack(CCItems.ROTTEN_LUNG.get()), 3, drops)
         }
         if (cc.organScore(CCOrganScores.NERVES) <= 0) {
-            forcefullyAddStack(cc, ItemStack(CCItems.ROTTEN_SPINE.get()), 13)
+            forcefullyAddStack(cc, ItemStack(CCItems.ROTTEN_SPINE.get()), 13, drops)
         }
         if (cc.organScore(CCOrganScores.STRENGTH) <= 0) {
-            forcefullyAddStack(cc, ItemStack(net.minecraft.world.item.Items.ROTTEN_FLESH, 16), 0)
+            forcefullyAddStack(cc, ItemStack(net.minecraft.world.item.Items.ROTTEN_FLESH, 16), 0, drops)
         }
     }
 
-    private fun forcefullyAddStack(cc: ChestCavityInstance, stack: ItemStack, slot: Int) {
-        if (!cc.inventory.canAddItem(stack)) {
-            cc.owner.spawnAtLocation(cc.inventory.removeItemNoUpdate(slot))
+    /**
+     * Adds a welfare organ without ever overwriting an existing stack (A-10).
+     *
+     * Order matches the original: merge into partial stacks / use an empty slot first; only when the
+     * cavity cannot take the stack at all is the preferred slot's occupant removed, and that occupant
+     * is preserved by routing it into the drop collection. Players with the vanilla keepInventory
+     * gamerule get a main-inventory attempt before any body slot is disturbed. Anything that still
+     * does not fit is dropped rather than silently discarded.
+     */
+    private fun forcefullyAddStack(
+        cc: ChestCavityInstance,
+        stack: ItemStack,
+        slot: Int,
+        drops: MutableCollection<net.minecraft.world.entity.item.ItemEntity>?
+    ) {
+        if (stack.isEmpty) return
+        var remainder = cc.inventory.addItem(stack)
+
+        if (!remainder.isEmpty) {
+            val owner = cc.owner
+            if (owner is net.minecraft.world.entity.player.Player &&
+                owner.level().gameRules.getBoolean(net.minecraft.world.level.GameRules.RULE_KEEPINVENTORY)
+            ) {
+                // Vanilla keeps the main inventory: let it absorb the surplus before touching the body.
+                if (owner.inventory.add(remainder)) return
+            }
         }
-        cc.inventory.setItem(slot, stack)
+
+        if (!remainder.isEmpty && slot in 0 until cc.inventory.containerSize) {
+            // The cavity is full: evict only the preferred slot, preserving what was there.
+            val evicted = cc.inventory.removeItemNoUpdate(slot)
+            if (!evicted.isEmpty) collectDrop(cc, evicted, drops)
+            remainder = cc.inventory.addItem(remainder)
+        }
+
+        if (!remainder.isEmpty) collectDrop(cc, remainder, drops)
+    }
+
+    /** Routes an item out of the body: into the platform drop collection when there is one (L-03). */
+    private fun collectDrop(
+        cc: ChestCavityInstance,
+        stack: ItemStack,
+        drops: MutableCollection<net.minecraft.world.entity.item.ItemEntity>?
+    ) {
+        if (stack.isEmpty) return
+        if (drops == null) {
+            cc.owner.spawnAtLocation(stack)
+            return
+        }
+        val itemEntity = net.minecraft.world.entity.item.ItemEntity(
+            cc.owner.level(), cc.owner.x, cc.owner.y, cc.owner.z, stack
+        )
+        itemEntity.setDefaultPickUpDelay()
+        drops.add(itemEntity)
     }
 
     private const val SHULKER_DILUTION = 1f / 27f
@@ -276,7 +470,19 @@ object ChestCavityUtil {
         }
     }
 
+    /**
+     * Original ChestCavityUtil#getCompatibilityLevel: Curse of Malpractice makes an organ unusable (0),
+     * otherwise O Negative raises the ownership level to its own level (I: never rejected, II: treated
+     * like the body's own organ).
+     */
     fun getCompatibilityLevel(cc: ChestCavityInstance, stack: ItemStack): Int {
+        if (stack.isEmpty) return 1
+        if (CCEnchantments.level(stack, CCEnchantments.MALPRACTICE) > 0) return 0
+        return max(CCEnchantments.level(stack, CCEnchantments.O_NEGATIVE), ownershipLevel(cc, stack))
+    }
+
+    /** 2 = this body's organ, 1 = unbound (universal), 0 = somebody else's; enchantments ignored. */
+    fun ownershipLevel(cc: ChestCavityInstance, stack: ItemStack): Int {
         if (stack.isEmpty) return 1
         val compat = stack.get(net.tigereye.chestcavity.registration.CCDataComponents.ORGAN_COMPATIBILITY.get())
         return when {
@@ -314,9 +520,19 @@ object ChestCavityUtil {
 
     // --- Debug ---
 
-    fun outputOrganScores(cc: ChestCavityInstance, output: (String) -> Unit) {
-        val name = runCatching { cc.owner.displayName?.string }.getOrDefault("Unknown")
-        output("[Chest Cavity] Displaying ${name}'s organ scores:")
-        cc.organScores.forEach { (key, value) -> output("${key.path}: $value") }
+    fun outputOrganScores(cc: ChestCavityInstance, output: (Component) -> Unit) {
+        // Names are entity display names, not translatable text; only the surrounding wording is.
+        val owner = runCatching { cc.owner.displayName }.getOrNull()
+            ?: Component.translatable("message.${ChestCavity.MODID}.organ_scores.unknown_owner")
+        output(Component.translatable("message.${ChestCavity.MODID}.organ_scores.header", owner))
+        cc.organScores.forEach { (key, value) ->
+            // Score names fall back to the bare registry path, so an unknown (data pack or addon)
+            // score prints exactly what it printed before translations existed.
+            val scoreName = Component.translatableWithFallback(
+                "message.${ChestCavity.MODID}.organ_scores.name.${key.path}", key.path
+            )
+            // Passing the number as a preformatted string keeps the printed value byte-identical.
+            output(Component.translatable("message.${ChestCavity.MODID}.organ_scores.line", scoreName, value.toString()))
+        }
     }
 }

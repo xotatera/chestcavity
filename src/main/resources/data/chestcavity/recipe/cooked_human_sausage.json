@@ -1,6 +1,8 @@
 {
   "type": "minecraft:smelting",
-  "ingredient": "chestcavity:raw_human_sausage",
+  "ingredient": {
+    "item": "chestcavity:raw_human_sausage"
+  },
   "result": {
     "id": "chestcavity:human_sausage",
     "count": 1

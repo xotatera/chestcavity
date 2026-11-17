@@ -1,6 +1,5 @@
 package net.tigereye.chestcavity.recipes
 
-import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.HolderLookup
@@ -8,6 +7,7 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
+import net.minecraft.util.ExtraCodecs
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import net.minecraft.world.item.crafting.*
@@ -57,7 +57,9 @@ class SalvageRecipe(
         val CODEC: MapCodec<SalvageRecipe> = RecordCodecBuilder.mapCodec { builder ->
             builder.group(
                 Ingredient.CODEC_NONEMPTY.fieldOf("ingredient").forGetter { it.input },
-                Codec.INT.optionalFieldOf("required", 1).forGetter { it.required },
+                // A unit of zero (or less) would divide by zero in matches() and in cleaver butchering,
+                // so such a recipe is rejected when the data pack loads.
+                ExtraCodecs.POSITIVE_INT.optionalFieldOf("required", 1).forGetter { it.required },
                 ItemStack.STRICT_CODEC.fieldOf("result").forGetter { it.outputStack },
             ).apply(builder, ::SalvageRecipe)
         }

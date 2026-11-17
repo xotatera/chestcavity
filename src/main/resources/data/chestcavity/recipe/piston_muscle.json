@@ -6,8 +6,12 @@
     "P  "
   ],
   "key": {
-    "P": "minecraft:piston",
-    "R": "minecraft:redstone"
+    "P": {
+      "item": "minecraft:piston"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    }
   },
   "result": {
     "id": "chestcavity:piston_muscle",

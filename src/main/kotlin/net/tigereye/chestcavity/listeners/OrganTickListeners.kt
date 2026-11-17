@@ -38,7 +38,7 @@ object OrganTickListeners {
         if (entity.hasEffect(CCStatusEffects.ORGAN_REJECTION)) return
         entity.addEffect(MobEffectInstance(
             CCStatusEffects.ORGAN_REJECTION,
-            (CCConfig.ORGAN_REJECTION_RATE.get() / incompatibility).toInt(),
+            (CCConfig.ORGAN_REJECTION_RATE.get() / incompatibility).toInt().coerceAtLeast(1),
             0, false, true, true
         ))
     }

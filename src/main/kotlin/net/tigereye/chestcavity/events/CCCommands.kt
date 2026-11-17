@@ -6,6 +6,7 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.network.chat.Component
+import net.tigereye.chestcavity.ChestCavity
 import net.tigereye.chestcavity.chestcavities.ChestCavityEntity
 import net.tigereye.chestcavity.util.ChestCavityUtil
 
@@ -28,12 +29,12 @@ object CCCommands {
 
     private fun getScoresSelf(ctx: CommandContext<CommandSourceStack>): Int {
         val entity = ctx.source.entity ?: run {
-            ctx.source.sendFailure(Component.literal("No entity context"))
+            ctx.source.sendFailure(Component.translatable("message.${ChestCavity.MODID}.no_entity_context"))
             return -1
         }
         val cce = ChestCavityEntity.of(entity) ?: return 0
         ChestCavityUtil.outputOrganScores(cce.chestCavityInstance) {
-            ctx.source.sendSuccess({ Component.literal(it) }, false)
+            ctx.source.sendSuccess({ it }, false)
         }
         return 1
     }
@@ -42,14 +43,14 @@ object CCCommands {
         val entity = EntityArgument.getEntity(ctx, "entity")
         val cce = ChestCavityEntity.of(entity) ?: return 0
         ChestCavityUtil.outputOrganScores(cce.chestCavityInstance) {
-            ctx.source.sendSuccess({ Component.literal(it) }, false)
+            ctx.source.sendSuccess({ it }, false)
         }
         return 1
     }
 
     private fun resetSelf(ctx: CommandContext<CommandSourceStack>): Int {
         val entity = ctx.source.entity ?: run {
-            ctx.source.sendFailure(Component.literal("No entity context"))
+            ctx.source.sendFailure(Component.translatable("message.${ChestCavity.MODID}.no_entity_context"))
             return -1
         }
         val cce = ChestCavityEntity.of(entity) ?: return 0

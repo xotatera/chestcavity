@@ -9,6 +9,7 @@ import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent
 import net.tigereye.chestcavity.ChestCavity
 import net.tigereye.chestcavity.chestcavities.organs.OrganManager
 import net.tigereye.chestcavity.registration.CCDataComponents
+import net.tigereye.chestcavity.registration.CCEnchantments
 import net.tigereye.chestcavity.registration.CCOrganScores
 import net.tigereye.chestcavity.registration.OrganCompatibility
 
@@ -29,15 +30,25 @@ object CCItemEvents {
             displayOrganQuality(organData.organScores, tooltip)
         }
 
-        // Show compatibility
+        // Show compatibility (original OrganUtil#displayCompatibility): Curse of Malpractice makes the
+        // organ unsafe; O Negative makes a bound organ safe for anyone.
         val compat = stack.get(CCDataComponents.ORGAN_COMPATIBILITY.get())
-        if (compat != null) {
+        val isTrueOrgan = organData != null && !organData.pseudoOrgan
+        if (isTrueOrgan && CCEnchantments.level(stack, CCEnchantments.MALPRACTICE) > 0) {
             tooltip.add(
-                Component.literal("Only Compatible With: ${compat.ownerName}")
+                Component.translatable("text.${ChestCavity.MODID}.tooltip.unsafe_to_use")
                     .withStyle(ChatFormatting.RED)
             )
-        } else if (organData != null && !organData.pseudoOrgan) {
-            tooltip.add(Component.literal("Safe to Use").withStyle(ChatFormatting.GREEN))
+        } else if (compat != null && CCEnchantments.level(stack, CCEnchantments.O_NEGATIVE) <= 0) {
+            tooltip.add(
+                Component.translatable("text.${ChestCavity.MODID}.tooltip.compatible_with", compat.ownerName)
+                    .withStyle(ChatFormatting.RED)
+            )
+        } else if (isTrueOrgan) {
+            tooltip.add(
+                Component.translatable("text.${ChestCavity.MODID}.tooltip.safe_to_use")
+                    .withStyle(ChatFormatting.GREEN)
+            )
         }
     }
 

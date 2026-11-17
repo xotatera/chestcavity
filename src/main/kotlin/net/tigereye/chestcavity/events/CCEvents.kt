@@ -7,7 +7,6 @@ import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.common.EventBusSubscriber
 import net.neoforged.neoforge.event.RegisterCommandsEvent
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent
-import net.neoforged.neoforge.event.entity.living.LivingDeathEvent
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent
 import net.neoforged.neoforge.event.entity.living.MobEffectEvent
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
@@ -16,7 +15,6 @@ import net.neoforged.neoforge.event.tick.EntityTickEvent
 import net.tigereye.chestcavity.CCConfig
 import net.tigereye.chestcavity.ChestCavity
 import net.tigereye.chestcavity.chestcavities.ChestCavityEntity
-import net.tigereye.chestcavity.chestcavities.instance.ChestCavityInstanceFactory
 import net.tigereye.chestcavity.registration.CCOrganScores
 import net.tigereye.chestcavity.util.ChestCavityUtil
 import net.tigereye.chestcavity.util.OrganUtil
@@ -26,18 +24,38 @@ import kotlin.math.min
 @EventBusSubscriber(modid = ChestCavity.MODID)
 object CCEvents {
 
+    /**
+     * Deterministic initialisation point for a fresh body.
+     *
+     * The instance is created in the [net.minecraft.world.entity.LivingEntity] constructor, far too
+     * early to resolve datapack types or to touch attributes. This event fires once the entity is
+     * fully constructed and is being added to a level, which is the first moment the body exists as a
+     * real thing — and unlike the tick path it does not depend on a player keeping the chunk alive,
+     * so a summoned or scripted body is never left with an empty score map (L-01).
+     */
+    @SubscribeEvent
+    fun onEntityJoinLevel(event: net.neoforged.neoforge.event.entity.EntityJoinLevelEvent) {
+        if (event.level.isClientSide) return
+        val cce = ChestCavityEntity.of(event.entity) ?: return
+        val cc = cce.chestCavityInstance
+        if (!cc.initialized) {
+            ChestCavityUtil.initializeChestCavity(cc)
+        }
+    }
+
     @SubscribeEvent
     fun onEntityTick(event: EntityTickEvent.Post) {
         val entity = event.entity
         val cce = ChestCavityEntity.of(entity) ?: return
         val cc = cce.chestCavityInstance
-        // Lazily resolve type after datapacks have loaded
-        if (cc.type.defaultOrganScores.isEmpty() && entity is LivingEntity) {
-            val resolved = ChestCavityInstanceFactory.resolveType(entity.type)
-            if (resolved.defaultOrganScores.isNotEmpty()) {
-                cc.type = resolved
-                ChestCavityUtil.evaluateChestCavity(cc)
-            }
+        // Fallback for a body that reached the level before the datapack types were available.
+        if (!cc.initialized) {
+            ChestCavityUtil.initializeChestCavity(cc)
+        }
+        // A body that is plainly alive again was resurrected after a committed death (totem-like
+        // effects, other mods): the next death is a new transaction and must commit on its own.
+        if (cc.deathCommitted && !cc.owner.isDeadOrDying) {
+            cc.deathCommitted = false
         }
         ChestCavityUtil.onTick(cc)
     }
@@ -112,19 +130,45 @@ object CCEvents {
         target.deltaMovement = target.deltaMovement.add(0.0, upward, 0.0)
     }
 
-    @SubscribeEvent
-    fun onLivingDeath(event: LivingDeathEvent) {
+    /**
+     * Death transaction entry point.
+     *
+     * Deliberately NOT on [LivingDeathEvent]: that event is cancellable and every listener may still
+     * resurrect the entity, in which case nothing about the body may change (L-03 / A13). The drops
+     * phase only runs after the death was approved, and it hands us the platform's own drop
+     * collection, so the organs we shed are still subject to every later drop listener.
+     */
+    @SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.HIGHEST)
+    fun onLivingDrops(event: net.neoforged.neoforge.event.entity.living.LivingDropsEvent) {
         val cce = ChestCavityEntity.of(event.entity) ?: return
-        ChestCavityUtil.onDeath(cce)
+        ChestCavityUtil.commitDeath(cce.chestCavityInstance, event.drops)
     }
 
+    /**
+     * Body hand-over on clone.
+     *
+     * The original always copied the instance here, for every clone path: the death transaction has
+     * already decided what the new body looks like (rebuild under a fresh id, or keep the old one), and
+     * the clone is what carries that decided body to the final respawn instance. Splitting this on
+     * KEEP_CHEST_CAVITY here (as the fork did) drops the whole body — inventory, opened state, body id
+     * and scores — on the default death path, which no later tick can repair (A-08 / L-01 / L-02).
+     */
     @SubscribeEvent
     fun onPlayerClone(event: PlayerEvent.Clone) {
         val oldCce = ChestCavityEntity.of(event.original) ?: return
         val newCce = ChestCavityEntity.of(event.entity) ?: return
-        if (CCConfig.KEEP_CHEST_CAVITY.get() || event.isWasDeath.not()) {
-            newCce.chestCavityInstance.copyFrom(oldCce.chestCavityInstance)
-        }
+        // Copies the decided body (incl. its body id) and re-evaluates for the new owner (A-08).
+        newCce.chestCavityInstance.copyFrom(oldCce.chestCavityInstance)
+    }
+
+    /**
+     * After an actual respawn the client has just built a brand new player object, so the state it
+     * holds is whatever the server sends now — not the packet that was sent during the clone (L-04).
+     */
+    @SubscribeEvent
+    fun onPlayerRespawn(event: net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerRespawnEvent) {
+        val cce = ChestCavityEntity.of(event.entity) ?: return
+        ChestCavityUtil.sendStateToClient(cce.chestCavityInstance)
     }
 
     @SubscribeEvent
@@ -133,12 +177,22 @@ object CCEvents {
         event.newSpeed = ChestCavityUtil.applyNervesToMining(cce.chestCavityInstance, event.newSpeed)
     }
 
-    // --- Status effect modification (kidneys/liver/buff purging) ---
-    private var modifyingEffect = false
+    // --- Status effect modification (rotgut/kidneys/liver/buff purging) ---
+    // Rotgut suppression runs on MobEffectEvent.Applicable, which fires inside
+    // addEffect BEFORE the instance is entered into activeEffects (L-10). A
+    // cancelled application never reaches the effect map and addEffect then
+    // correctly reports failure to the caller.
+    //
+    // Duration shortening no longer goes through Applicable + re-entry (R2): it
+    // rewrites the instance via a mixin that swaps the addEffect parameter at
+    // HEAD (the original mod did the same with ModifyVariable on
+    // addStatusEffect). That keeps addEffect's return value true so /effect
+    // still reports success, preserves the source entity, and lets vanilla's
+    // own merge path handle the shortened instance. No re-entry flag exists
+    // anymore, so there is nothing to go stale (R3).
 
     @SubscribeEvent
-    fun onMobEffectAdded(event: MobEffectEvent.Added) {
-        if (modifyingEffect) return
+    fun onMobEffectApplicable(event: MobEffectEvent.Applicable) {
         val entity = event.entity as? LivingEntity ?: return
         val cce = ChestCavityEntity.of(entity) ?: return
         val cc = cce.chestCavityInstance
@@ -150,12 +204,21 @@ object CCEvents {
         if (effect.effect == net.minecraft.world.effect.MobEffects.HUNGER) {
             val rotgut = cc.organScore(CCOrganScores.ROTGUT) + cc.organScore(CCOrganScores.ROT_DIGESTION)
             if (rotgut > 0) {
-                modifyingEffect = true
-                entity.removeEffect(effect.effect)
-                modifyingEffect = false
-                return
+                event.result = MobEffectEvent.Applicable.Result.DO_NOT_APPLY
             }
         }
+    }
+
+    /**
+     * Returns a shortened copy of [effect] for entities whose organs shorten
+     * durations, or null when no shortening applies. Called from the
+     * addEffect-parameter mixin; infinite durations are left untouched instead
+     * of being cut to 1 tick.
+     */
+    fun shortenAppliedEffect(entity: LivingEntity, effect: net.minecraft.world.effect.MobEffectInstance): net.minecraft.world.effect.MobEffectInstance? {
+        val cce = ChestCavityEntity.of(entity) ?: return null
+        val cc = cce.chestCavityInstance
+        if (!cc.opened) return null
 
         val category = effect.effect.value().category
         var factor = 1f
@@ -191,17 +254,23 @@ object CCEvents {
             }
         }
 
-        // Replace effect with shorter duration if modified
-        if (factor < 1f) {
-            val newDuration = (effect.duration * factor).toInt().coerceAtLeast(1)
-            modifyingEffect = true
-            entity.removeEffect(effect.effect)
-            entity.addEffect(net.minecraft.world.effect.MobEffectInstance(
-                effect.effect, newDuration, effect.amplifier,
-                effect.isAmbient, effect.isVisible, effect.showIcon()
-            ))
-            modifyingEffect = false
+        if (factor >= 1f || effect.isInfiniteDuration) return null
+        val newDuration = (effect.duration * factor).toInt().coerceAtLeast(1)
+
+        // MobEffectInstance has no public duration setter, so rebuild it from
+        // its serialized form (same shape collectFurnaceDurations reads) to
+        // keep amplifier, visibility flags and the hidden-effect chain intact.
+        val tag = effect.save() as? net.minecraft.nbt.CompoundTag
+        if (tag != null) {
+            tag.putInt("duration", newDuration)
+            val parsed = net.minecraft.world.effect.MobEffectInstance.CODEC
+                .parse(net.minecraft.nbt.NbtOps.INSTANCE, tag).result().orElse(null)
+            if (parsed != null) return parsed
         }
+        return net.minecraft.world.effect.MobEffectInstance(
+            effect.effect, newDuration, effect.amplifier,
+            effect.isAmbient, effect.isVisible, effect.showIcon()
+        )
     }
 
     // --- Entity interaction (chest opener on mobs, milking silk, shearing silk) ---

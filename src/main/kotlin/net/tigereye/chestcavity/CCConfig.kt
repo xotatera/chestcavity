@@ -44,6 +44,15 @@ object CCConfig {
         .define("core.keep_chest_cavity", false)
     val DISABLE_ORGAN_REJECTION = BUILDER.comment("Disable organ rejection entirely")
         .define("core.disable_organ_rejection", false)
+    val CLEAVER_SALVAGES_ORGAN_BUNDLE = BUILDER.comment(
+        "A cleaver kill butchers salvageable drops into meat. When true (the original behaviour) this " +
+            "includes the random organ bundle; set false to keep that bundle's organs intact")
+        .define("core.cleaver_salvages_organ_bundle", true)
+    val SURGICAL_SPARES_ORGANS = BUILDER.comment(
+        "When a cleaver butchers the organ bundle, each level of Surgical on it gives every bundle organ a 1 in 3 " +
+            "chance to come out whole (level 3 keeps them all). Off by default: in the original, Surgical only " +
+            "raises the bundle chance")
+        .define("core.surgical_spares_organs", false)
 
     // Ability tuning
     val ARROW_DODGE_DISTANCE = BUILDER.comment("Max teleport distance for arrow dodging")
